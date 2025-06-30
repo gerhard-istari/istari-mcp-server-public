@@ -1,0 +1,10 @@
+[tool.poetry]
+name = "mcp_test"
+version = "1.0.0"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mcp = "=1.9.4"
+dotenv = "=0.9.9"
+istari_digital_client = "=7.3.7"
