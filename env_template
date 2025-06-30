@@ -1,0 +1,11 @@
+# Dev Environment
+DEV_DOMAIN = 'dev'
+DEV_REG_AUTH_TOKEN = ''
+
+# Demo Environment
+DEMO_DOMAIN = 'demo'
+DEMO_REG_AUTH_TOKEN = ''
+
+REG_URL = "https://fileservice-v2.${DEMO_DOMAIN}.istari.app/"
+REG_AUTH_TOKEN = ${DEMO_REG_AUTH_TOKEN}
+CAMEO_VERSION = "2022x-Refresh2"
