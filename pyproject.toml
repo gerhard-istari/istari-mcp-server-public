@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mcp_test"
+name = "istari_mcp_server"
 version = "1.0.0"
 package-mode = false
 

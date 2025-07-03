@@ -6,7 +6,7 @@ from shared.constants import *
 from shared.helpers import *
 
 
-mcp = FastMCP("jokes")
+mcp = FastMCP("istari-mcp-server")
 
 @mcp.tool()
 def get_model_ids() -> list[tuple[str, str]]:
@@ -62,6 +62,26 @@ def get_3dx_parameters(model_id: str) -> str:
     ret_str = req_data.decode('utf-8')
   except FileNotFoundError:
     ret_str = 'Requirements artifact not found. Extract the requirements from the cameo model first.'
+
+  return ret_str
+
+
+@mcp.tool()
+def get_3dx_components(model_id: str) -> str:
+  """Retrieves information about components such as:
+     * Materials
+     * Center of gravity
+     * Bounding box dimensions
+  
+     Args:
+       mod_id (str): The ID of the model for which parameters should be retrieved.
+  """
+  try:
+    req_data = download_artifact_data(model_id,
+                                      PARTS_FILE_NAME)
+    ret_str = req_data.decode('utf-8')
+  except FileNotFoundError:
+    ret_str = 'Components artifact not found. Extract the component from the 3DExperience model first.'
 
   return ret_str
 
