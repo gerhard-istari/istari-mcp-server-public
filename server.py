@@ -9,11 +9,11 @@ from shared.helpers import *
 mcp = FastMCP("istari-mcp-server")
 
 @mcp.tool()
-def get_model_ids() -> list[tuple[str, str]]:
+def get_model_ids() -> list[str]:
   """Gets the names and IDs of all available models.
 
      Returns:
-       A list of tuples containing the model names and IDs.
+       A list of strings containing the model names and IDs separated by a '|' character.
   """
   client = get_client()
   pg_idx = 1
@@ -24,7 +24,7 @@ def get_model_ids() -> list[tuple[str, str]]:
     for mod_itm in mod_pg.items:
       mod_id = mod_itm.id
       mod_rev = mod_itm.file.revisions[-1]
-      mods.append((mod_rev.name, mod_id))
+      mods.append(f"{mod_rev.name} | {mod_id}")
 
     pg_idx += 1
     mod_pg = client.list_models(pg_idx)
