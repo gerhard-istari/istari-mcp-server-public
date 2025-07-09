@@ -7,4 +7,5 @@ package-mode = false
 python = "^3.11"
 mcp = "=1.9.4"
 dotenv = "=0.9.9"
+pillow = "*"
 istari_digital_client = "=7.3.7"
