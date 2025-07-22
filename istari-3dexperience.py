@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import tempfile
 from io import BytesIO
 from mcp.server.fastmcp import FastMCP
 from PIL import Image
@@ -10,46 +11,6 @@ from shared.helpers import *
 
 
 mcp = FastMCP("istari-mcp-server")
-
-@mcp.tool()
-def get_model_ids() -> list[str]:
-  """Gets the names and IDs of all available models.
-
-     Returns:
-       A list of strings containing the model names and IDs separated by a '|' character.
-  """
-  client = get_client()
-  pg_idx = 1
-  mod_pg = client.list_models(pg_idx)
-
-  mods = []
-  while len(mod_pg.items) > 0:
-    for mod_itm in mod_pg.items:
-      mod_id = mod_itm.id
-      mod_rev = mod_itm.file.revisions[-1]
-      mods.append(f"{mod_rev.name} | {mod_id}")
-
-    pg_idx += 1
-    mod_pg = client.list_models(pg_idx)
-
-  return mods
-
-
-@mcp.tool()
-def get_cameo_requirements(model_id: str) -> str:
-  """Retrieves requirements for Cameo model with the specified model ID.
-
-     Args:
-       model_id (str): A string containing the ID of the model for which parameters will be retrieved.
-  """
-  try:
-    req_data = download_artifact_data(model_id,
-                                      REQ_FILE_NAME)
-    ret_str = req_data.decode('utf-8')
-  except FileNotFoundError:
-    ret_str = 'Requirements artifact not found. Extract the requirements from the cameo model first.'
-
-  return ret_str
 
 
 @mcp.tool()
@@ -90,24 +51,6 @@ def get_3dx_components(model_id: str) -> str:
     ret_str = 'Components artifact not found. Extract artifacts from the 3DExperience model first.'
 
   return ret_str
-
-
-@mcp.tool()
-def extract_cameo_model_artifacts(model_id: str) -> str:
-  """Extracts artifacts from a Cameo model with the specified ID.
-
-     Args:
-       model_id (str): A string containing the ID of the model for which parameters will be retrieved.
-  """
-  print('Submitting job to extract Cameo model requirements ...')
-  job = submit_job(model_id = model_id,
-                   function = '@istari:extract',
-                   tool_name = CAMEO_TOOL_NAME,
-                   tool_ver = CAMEO_VERSION)
-  print(f"Job submitted with ID: {job.id}")
-
-  job = wait_for_job(job)
-  return f"Job Complete [{job.status.name}]"
 
 
 @mcp.tool()
@@ -224,7 +167,5 @@ def view_3dx_model(model_id: str,
 
 
 if __name__ == "__main__":
-    print("MCP Server is running")
-    mcp.run(transport='stdio')
-    #view_3dx_model('2d7a2257-bce8-430d-b318-d22bce062fab',
-    #               'iso')
+  print("MCP Server is running")
+  mcp.run(transport='stdio')

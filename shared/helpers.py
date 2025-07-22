@@ -55,6 +55,15 @@ def wait_for_all_jobs():
     wait_for_job(job)
 
 
+def get_model_display_name(model_id: str) -> str:
+  client = get_client()
+  mod = client.get_model(model_id)
+  disp_name = mod.display_name
+  if disp_name is None:
+    disp_name,_ = os.path.splitext(mod.name)
+
+  return disp_name
+
 def get_latest_revision(model_id: str) -> str:
   client = get_client()
   mod = client.get_model(model_id)
@@ -142,8 +151,11 @@ def download_artifact_data(model_id: str,
       if art.name == artifact_name:
         for art_rev in art.revisions:
           for art_rev_src in art_rev.sources:
-            if art_rev_src.revision_id == mod_rev_id:
-              return art_rev.read_bytes()
+            try:
+              if art_rev_src.revision_id == mod_rev_id:
+                return art_rev.read_bytes()
+            except Exception as excp:
+              print(f"Exception: {excp}")
 
     pg_idx += 1
 
@@ -163,7 +175,7 @@ def download_artifact(model_id: str,
   if dest_file is None:
     dest_file = artifact_name
   with open(dest_file, 'wb') as fout:
-    fout.write(art_rev.read_bytes())
+    fout.write(art_bytes)
 
 
 def get_input(msg: str,

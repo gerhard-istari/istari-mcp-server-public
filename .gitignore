@@ -1,5 +1,6 @@
 *.bak
 *.swp
+*.swo
 .env
 /venv
 /.venv

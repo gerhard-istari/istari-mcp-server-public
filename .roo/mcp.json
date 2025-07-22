@@ -1,10 +1,4 @@
 {
   "mcpServers": {
-    "istari_server": {
-      "command": "/path/to/startup.sh",
-      "args": [],
-      "disabled": false,
-      "alwaysAllow": []
-    }
   }
 }
