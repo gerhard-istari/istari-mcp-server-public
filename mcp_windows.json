@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "istari_server": {
+      "command": "cmd.exe",
+      "args": ["/C", "${workspaceFolder}/startup.bat", "istari-main.py"],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_3dx": {
+      "command": "cmd.exe",
+      "args": ["/C", "${workspaceFolder}/startup.bat", "istari-3dexperience.py"],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_cameo": {
+      "command": "cmd.exe",
+      "args": ["/C", "${workspaceFolder}/startup.bat", "istari-cameo.py"],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_excel": {
+      "command": "cmd.exe",
+      "args": ["/C", "${workspaceFolder}/startup.bat", "istari-excel.py"],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_nastran": {
+      "command": "cmd.exe",
+      "args": ["/C", "${workspaceFolder}/startup.bat", "istari-nastran.py"],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    }
+  }
+}

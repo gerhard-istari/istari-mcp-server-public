@@ -3,4 +3,4 @@ set PYTHONHOME=
 set PATH=%HOME_DIR%\venv\Scripts;%PATH%
 
 cd %HOME_DIR%
-python istari-server.py
+python %1
