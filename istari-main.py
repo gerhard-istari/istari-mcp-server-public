@@ -5,7 +5,7 @@ import tempfile
 from io import BytesIO
 from mcp.server.fastmcp import FastMCP
 from PIL import Image
-from istari_digital_client.models import NewSnapshot, NewSystem, NewSystemConfiguration, NewTrackedFile
+from istari_digital_client.models import NewSnapshot, NewSystem, NewSystemConfiguration, NewTrackedFile, AccessRelationship, AccessRelation, AccessSubjectType, AccessResourceType
 from istari_digital_client.models.tracked_file_specifier_type import TrackedFileSpecifierType
 
 from shared.constants import *
@@ -19,7 +19,7 @@ def get_models() -> dict[str, dict[str, str]]:
   """Gets the UUIDs and associated metadata of all available models.
 
      Returns:
-       A dictionary with keys containing model UUIDs and values containing various model metadata.
+       A dictionary with keys containing model UUIDs and values containing model metadata.
   """
   client = get_client()
   pg_idx = 1
@@ -45,6 +45,27 @@ def get_models() -> dict[str, dict[str, str]]:
 
 
 @mcp.tool()
+def get_users() -> dict[str, dict[str, str]]:
+  """Gets the UUIDs and associated metadata of all users.
+
+     Returns:
+       A dictionary with keys containing user UUIDs and values containing user metadata.
+  """
+  client = get_client()
+  users = client.list_users()
+  user_list = {}
+  for user in users:
+    user_list[user.id] = {"user_name": user.user_name,
+                          "user_type": str(user.user_type),
+                          "display_name": user.display_name,
+                          "first_name": user.first_name,
+                          "last_name": user.last_name,
+                          "email": user.email}
+
+  return user_list
+
+
+@mcp.tool()
 def get_systems() -> dict[str, dict[str, str]]:
   """Gets the UUIDs and associated metadata of all available systems.
 
@@ -67,6 +88,33 @@ def get_systems() -> dict[str, dict[str, str]]:
     sys_pg = client.list_systems(pg_idx)
 
   return systems
+
+
+@mcp.tool()
+def share_resource_with_user(resource_id: str,
+                             user_id: str,
+                             access_type: str,
+                             resource_type: str) -> str:
+  """Shares a resource with a specified user. The resource may be a model, artifact or system.
+
+     Args:
+       resource_id (str): A string containing the UUID of the resource to share.
+       user_id (str): A string containing the UUID of the user with who to share the model.
+       access_type (str): A string indicating the level of access provided to the model. Valid values are:
+          * 'Viewer'
+          * 'Editor'
+          * 'Owner'
+          * 'Administrator'
+       resource_type (str): A string indicating what type of resource should be shared. Valid values are:
+          * 'Model'
+          * 'Artifact'
+          * 'System'
+  """
+  share_object(resource_id,
+               user_id,
+               access_type,
+               resource_type)
+  return 'Resource shared successfully'
 
 
 @mcp.tool()
@@ -355,10 +403,35 @@ def upload_model(model_file: str,
   return f"Model uploaded with UUID: {mod.id}"
 
 
+def share_object(obj_id: str,
+                 user_id: str,
+                 access_type: str,
+                 resource_type: str) -> None:
+  client = get_client()
+
+  access_type = access_type.lower()
+  access = None
+  if access_type == 'viewer': access = AccessRelation.VIEWER
+  elif access_type == 'editor': access = AccessRelation.EDITOR
+  elif access_type == 'owner': access = AccessRelation.OWNER
+  elif access_type == 'administrator': access = AccessRelation.ADMINISTRATOR
+  else: raise SyntaxError(f"Invalid access level specified: {access}")
+
+  resource_type = resource_type.lower()
+  resource = None
+  if resource_type == 'model': resource = AccessResourceType.MODEL
+  elif resource_type == 'artifact': resource = AccessResourceType.ARTIFACT
+  elif resource_type == 'system': resource = AccessResourceType.SYSTEM
+  else: raise SyntaxError(f"Invalid resource type specified: {resource_type}")
+
+  ar = AccessRelationship(subject_type=AccessSubjectType.USER,
+                          subject_id=user_id,
+                          relation=access,
+                          resource_type=resource,
+                          resource_id=obj_id)
+  client.create_access(ar)
+
+
 if __name__ == "__main__":
   print("MCP Server is running")
   mcp.run(transport='stdio')
-  #print(get_system_snapshots('a03aa4f2-b8a4-48ea-be31-ffb2b6378aab'))
-  #print(create_system_configuration(system_id='a03aa4f2-b8a4-48ea-be31-ffb2b6378aab',
-  #                                  config_name="GerCfg",
-  #                                  model_ids=["51f17963-9b26-423f-a73c-7f829ac24b7c"]))
