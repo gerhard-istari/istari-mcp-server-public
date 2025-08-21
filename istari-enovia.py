@@ -59,7 +59,6 @@ class EnoviaConnector:
 
   def start_session(self):
     # Get TGT (Ticket Granting Ticket)
-    USERNAME = self._get_env_var("ENOVIA_USER")
     SERVICE_NAME = self._get_env_var("SERVICE_NAME")
     SERVICE_SECRET = self._get_env_var("SERVICE_SECRET")
     headers = {
@@ -67,23 +66,32 @@ class EnoviaConnector:
         "DS-SERVICE-SECRET": SERVICE_SECRET,
     }
 
+    USERNAME = self._get_env_var("ENOVIA_USER")
+    self.SSL_VERIFY = os.getenv("SSL_VERIFY")
+    if self.SSL_VERIFY is None: self.SSL_VERIFY = True
+    else: self.SSL_VERIFY = self.SSL_VERIFY.lower() != 'false'
+
     url = f"{self.get_3dpassport_url()}/api/v2/batch/ticket?identifier={USERNAME}&service={urllib.parse.quote(self.BASE_URL + '/3dspace/')}"
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, 
+                            headers=headers,
+                            verify=self.SSL_VERIFY)
     tgt = response.json()["access_token"]
     print(f"TGT Access Token: {tgt}")
 
 
     # Get ST (Service Ticket) from TGT
     url = f"{self.get_3dpassport_url()}/api/login/cas/transient?tgt={tgt}&service={urllib.parse.quote(self.BASE_URL + '/3dspace/')}"
-    response = requests.get(url, headers={"Accept": "application/json"})
+    header = self.get_standard_header()
+    response = requests.get(url, 
+                            headers=header,
+                            verify=self.SSL_VERIFY)
     st = response.json()["access_token"]
     print(f"ST Access Token: {st}")
 
-
     # Use ST to Authenticate Session
     self.session = requests.Session()
-    auth_response = self.session.get(f"{self.get_3dspace_url()}/?ticket={st}")
-
+    auth_response = self.session.get(f"{self.get_3dspace_url()}/?ticket={st}",
+                                     verify=self.SSL_VERIFY)
 
     # Save Security Context
     url = f"{self.get_3dspace_url()}/resources/modeler/pno/person"
@@ -91,7 +99,10 @@ class EnoviaConnector:
         "current": "true",
         "select": "preferredcredentials"
     }
-    response = self.session.get(url, params=params, headers=self.get_standard_header())
+    response = self.session.get(url, 
+                                params=params, 
+                                headers=header,
+                                verify=self.SSL_VERIFY)
     response.raise_for_status()
     credentials = response.json()["preferredcredentials"]
     role = credentials["role"]["name"]
@@ -104,7 +115,8 @@ class EnoviaConnector:
                            item_id: str) -> None:
     url = f"{self.get_engineering_url()}/dseng:EngItem/{item_id}"
     resp = self.session.get(url,
-                            headers=self.get_session_header())
+                            headers=self.get_session_header(),
+                            verify=self.SSL_VERIFY)
     print(json.dumps(resp.json(), indent=2))
 
 
@@ -115,7 +127,8 @@ class EnoviaConnector:
     params = {"$searchStr": srch_str, "$top": max_items}
     resp = self.session.get(url,
                             headers=self.get_session_header(),
-                            params=params)
+                            params=params,
+                            verify=self.SSL_VERIFY)
     return resp.json()
 
 
@@ -123,7 +136,8 @@ class EnoviaConnector:
                                      item_id: str) -> object:
     url = f"{self.get_engineering_url()}/dseng:EngItem/{item_id}/dseng:EngInstance"
     resp = self.session.get(url,
-                            headers=self.get_session_header())
+                            headers=self.get_session_header(),
+                            verify=self.SSL_VERIFY)
     return json.dumps(resp.json(), indent=2)
 
 
@@ -133,7 +147,8 @@ class EnoviaConnector:
     url = f"{self.get_engineering_url()}/dseng:EngItem/{parent_id}/dseng:EngInstance/{component_id}/replace"
     print(url)
     resp = self.session.post(url,
-                             headers=self.get_session_header())
+                             headers=self.get_session_header(),
+                             verify=self.SSL_VERIFY)
     print(json.dumps(resp.json(), indent=2))
 
 
@@ -151,7 +166,8 @@ class EnoviaConnector:
       url = f"{self.get_documents_url()}/parentId/{item_id}"
       resp = self.session.get(url,
                               params=params,
-                              headers=self.get_session_header())
+                              headers=self.get_session_header(),
+                              verify=self.SSL_VERIFY)
       docs.append(resp.json())
 
     return docs
