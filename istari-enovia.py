@@ -173,6 +173,18 @@ class EnoviaConnector:
     return docs
 
 
+  def find_documents(self,
+                     srch_str: str,
+                     max_items: int = 1) -> object:
+    url = f"{self.get_documents_url()}/search"
+    params = {"$searchStr": srch_str, "$top": max_items}
+    resp = self.session.get(url,
+                            headers=self.get_session_header(),
+                            params=params,
+                            verify=self.SSL_VERIFY)
+    return resp.json()
+
+
   def _get_env_var(self,
                    var_name: str) -> str:
     var_val = os.getenv(var_name)
@@ -222,6 +234,20 @@ def get_engineering_item_documents(item_id: str,
   """
   return ec.get_engineering_item_documents(item_id,
                                            relationships)
+
+
+@mcp.tool()
+def find_documents(srch_str: str) -> list[dict[str, str]]:
+  """Finds all Enovia documents that match the specified search string.
+
+		 Args:
+			 srch_str (str): The string to use for matching documents
+
+		 Returns:
+       A list of document dictionaries with information about the items such as name, ID, descriptions, etc.
+  """
+  return ec.find_documents(srch_str, 
+                           100)
 
 
 if __name__ == "__main__":
