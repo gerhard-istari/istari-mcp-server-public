@@ -1,0 +1,206 @@
+"""
+This MCP server expects a file named 'enovia.env' to be located in the same
+directory as the server. The env file must include the following information:
+
+BASE_URL = <YOUR_BASE_URL>
+SERVICE_NAME = <YOUR_SERVICE_NAME>
+SERVICE_SECRET = <YOUR_SERVICE_SECRET>
+
+A service secret can be generated from 3DX Platform Manager ->
+3D Passport Control Center -> Integration -> Batch Services
+"""
+import json
+import os
+import requests
+import urllib.parse
+from mcp.server.fastmcp import FastMCP
+
+from istari_digital_client.models.tracked_file_specifier_type import TrackedFileSpecifierType
+
+from shared.constants import *
+from shared.helpers import *
+
+
+mcp = FastMCP("istari-mcp-server")
+ec = None
+
+class EnoviaConnector:
+
+  def __init__(self):
+    dotenv.load_dotenv(dotenv_path='enovia.env',override=True)
+    self.BASE_URL = os.getenv("BASE_URL")
+
+
+  def get_standard_header(self) -> dict[str, str]:
+    return {"Accept": "application/json"}
+
+
+  def get_session_header(self) -> dict[str, str]:
+    header = self.get_standard_header()
+    header['SecurityContext'] = self.security_context
+    return header
+
+
+  def get_3dspace_url(self) -> str:
+    return f"{self.BASE_URL}/3dspace"
+
+
+  def get_3dpassport_url(self) -> str:
+    return f"{self.BASE_URL}/3dpassport"
+
+
+  def get_engineering_url(self) -> str:
+    return f"{self.get_3dspace_url()}/resources/v1/modeler/dseng"
+
+
+  def get_documents_url(self) -> str:
+    return f"{self.get_3dspace_url()}/resources/v1/modeler/documents"
+
+
+  def start_session(self):
+    # Get TGT (Ticket Granting Ticket)
+    USERNAME = os.getenv("ENOVIA_USER")
+    SERVICE_NAME = os.getenv("SERVICE_NAME")
+    SERVICE_SECRET = os.getenv("SERVICE_SECRET")
+    headers = {
+        "DS-SERVICE-NAME": SERVICE_NAME,
+        "DS-SERVICE-SECRET": SERVICE_SECRET,
+    }
+
+    url = f"{self.get_3dpassport_url()}/api/v2/batch/ticket?identifier={USERNAME}&service={urllib.parse.quote(self.BASE_URL + '/3dspace/')}"
+    response = requests.get(url, headers=headers)
+    tgt = response.json()["access_token"]
+    print(f"TGT Access Token: {tgt}")
+
+
+    # Get ST (Service Ticket) from TGT
+    url = f"{self.get_3dpassport_url()}/api/login/cas/transient?tgt={tgt}&service={urllib.parse.quote(self.BASE_URL + '/3dspace/')}"
+    response = requests.get(url, headers={"Accept": "application/json"})
+    st = response.json()["access_token"]
+    print(f"ST Access Token: {st}")
+
+
+    # Use ST to Authenticate Session
+    self.session = requests.Session()
+    auth_response = self.session.get(f"{self.get_3dspace_url()}/?ticket={st}")
+
+
+    # Save Security Context
+    url = f"{self.get_3dspace_url()}/resources/modeler/pno/person"
+    params = {
+        "current": "true",
+        "select": "preferredcredentials"
+    }
+    response = self.session.get(url, params=params, headers=self.get_standard_header())
+    response.raise_for_status()
+    credentials = response.json()["preferredcredentials"]
+    role = credentials["role"]["name"]
+    organization = credentials["organization"]["name"]
+    collabspace = credentials["collabspace"]["name"]
+    self.security_context = f"{role}.{organization}.{collabspace}"
+
+
+  def get_engineering_item(self,
+                           item_id: str) -> None:
+    url = f"{self.get_engineering_url()}/dseng:EngItem/{item_id}"
+    resp = self.session.get(url,
+                            headers=self.get_session_header())
+    print(json.dumps(resp.json(), indent=2))
+
+
+  def find_engineering_items(self,
+                             srch_str: str,
+                             max_items: int = 1) -> object:
+    url = f"{self.get_engineering_url()}/dseng:EngItem/search"
+    params = {"$searchStr": srch_str, "$top": max_items}
+    resp = self.session.get(url,
+                            headers=self.get_session_header(),
+                            params=params)
+    return resp.json()
+
+
+  def get_engineering_item_instances(self,
+                                     item_id: str) -> object:
+    url = f"{self.get_engineering_url()}/dseng:EngItem/{item_id}/dseng:EngInstance"
+    resp = self.session.get(url,
+                            headers=self.get_session_header())
+    return json.dumps(resp.json(), indent=2)
+
+
+  def replace_engineering_instance(self,
+                                   parent_id: str,
+                                   component_id: str) -> str:
+    url = f"{self.get_engineering_url()}/dseng:EngItem/{parent_id}/dseng:EngInstance/{component_id}/replace"
+    print(url)
+    resp = self.session.post(url,
+                             headers=self.get_session_header())
+    print(json.dumps(resp.json(), indent=2))
+
+
+  def get_engineering_item_documents(self,
+                                     item_id: str,
+                                     rels: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
+    docs = []
+    for rel in rels:
+      params = {
+                 "parentRelName": rel,
+                 "parentDirection": "from",
+                 "$include": "files,ownerInfo,parents",
+								 "$fields": "all"
+                }
+      url = f"{self.get_documents_url()}/parentId/{item_id}"
+      resp = self.session.get(url,
+                              params=params,
+                              headers=self.get_session_header())
+      docs.append(resp.json())
+
+    return docs
+
+
+@mcp.tool()
+def find_engineering_items(srch_str: str) -> list[dict[str, str]]:
+  """Finds all Enovia engineering items that match the specified search string.
+
+		 Args:
+			 srch_str (str): The string to use for matching product names
+
+		 Returns:
+       A list of engineering item dictionaries with information about the items such as name, ID, descriptions, etc.
+  """
+  return ec.find_engineering_items(srch_str, 
+                                   100)
+
+@mcp.tool()
+def get_engineering_item_instances(item_id: str) -> list[dict[str, str]]:
+  """Gets all instances (subassemblies, subcomponents, parts, etc.) of the specified engineering item.
+
+     Args:
+       item_id (str): The engineering item ID to search
+
+     Returns:
+       A list of engineering instance dictionaries with information about the instances such as name, ID, descriptions, etc.
+  """
+  return ec.get_engineering_item_instances(item_id)
+
+
+@mcp.tool()
+def get_engineering_item_documents(item_id: str,
+                                   relationships: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
+  """Gets documents associated with an engineering item.
+
+     Args:
+       item_id (str): The engineering item ID
+       relationships (list[str]): The types of relationships of the associated documents to search for
+
+     Return:
+       A list of document dictionaries with information about the documents such as name, ID, descriptions, etc.
+  """
+  return ec.get_engineering_item_documents(item_id,
+                                           relationships)
+
+
+if __name__ == "__main__":
+  ec = EnoviaConnector()
+  ec.start_session()
+  print("MCP Server is running")
+  mcp.run(transport='stdio')
