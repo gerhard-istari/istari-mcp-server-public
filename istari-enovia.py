@@ -177,6 +177,18 @@ class EnoviaConnector:
                      srch_str: str,
                      max_items: int = 1) -> object:
     url = f"{self.get_documents_url()}/search"
+    params = {"searchStr": srch_str, "$top": max_items}
+    resp = self.session.get(url,
+                            headers=self.get_session_header(),
+                            params=params,
+                            verify=self.SSL_VERIFY)
+    return resp.json()
+
+
+  def find_issues(self,
+                  srch_str: str,
+                  max_items: int = 1) -> object:
+    url = f"{self.get_issues_url()}/search"
     params = {"$searchStr": srch_str, "$top": max_items}
     resp = self.session.get(url,
                             headers=self.get_session_header(),
@@ -244,10 +256,24 @@ def find_documents(srch_str: str) -> list[dict[str, str]]:
 			 srch_str (str): The string to use for matching documents
 
 		 Returns:
-       A list of document dictionaries with information about the items such as name, ID, descriptions, etc.
+       A list of document dictionaries with information about the documents such as name, ID, descriptions, etc.
   """
   return ec.find_documents(srch_str, 
                            100)
+
+
+@mcp.tool()
+def find_issues(srch_str: str) -> list[dict[str, str]]:
+  """Finds all Enovia issues that match the specified search string.
+
+		 Args:
+			 srch_str (str): The string to use for matching issues
+
+		 Returns:
+       A list of issue dictionaries with information about the issues such as name, ID, descriptions, etc.
+  """
+  return ec.find_issues(srch_str, 
+                        100)
 
 
 if __name__ == "__main__":
