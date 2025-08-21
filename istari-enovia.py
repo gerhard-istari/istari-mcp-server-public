@@ -57,6 +57,10 @@ class EnoviaConnector:
     return f"{self.get_3dspace_url()}/resources/v1/modeler/documents"
 
 
+  def get_issues_url(self) -> str:
+    return f"{self.get_3dspace_url()}/resources/v1/modeler/issue"
+
+
   def start_session(self):
     # Get TGT (Ticket Granting Ticket)
     SERVICE_NAME = self._get_env_var("SERVICE_NAME")
