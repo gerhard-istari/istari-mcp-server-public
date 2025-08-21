@@ -28,7 +28,7 @@ class EnoviaConnector:
 
   def __init__(self):
     dotenv.load_dotenv(dotenv_path='enovia.env',override=True)
-    self.BASE_URL = os.getenv("BASE_URL")
+    self.BASE_URL = self._get_env_var('BASE_URL')
 
 
   def get_standard_header(self) -> dict[str, str]:
@@ -59,9 +59,9 @@ class EnoviaConnector:
 
   def start_session(self):
     # Get TGT (Ticket Granting Ticket)
-    USERNAME = os.getenv("ENOVIA_USER")
-    SERVICE_NAME = os.getenv("SERVICE_NAME")
-    SERVICE_SECRET = os.getenv("SERVICE_SECRET")
+    USERNAME = self._get_env_var("ENOVIA_USER")
+    SERVICE_NAME = self._get_env_var("SERVICE_NAME")
+    SERVICE_SECRET = self._get_env_var("SERVICE_SECRET")
     headers = {
         "DS-SERVICE-NAME": SERVICE_NAME,
         "DS-SERVICE-SECRET": SERVICE_SECRET,
@@ -155,6 +155,15 @@ class EnoviaConnector:
       docs.append(resp.json())
 
     return docs
+
+
+  def _get_env_var(self,
+                   var_name: str) -> str:
+    var_val = os.getenv(var_name)
+    if var_val is None:
+      raise EnvironmentError(f"[{var_name}] variable has not been set in environment")
+
+    return var_val
 
 
 @mcp.tool()
