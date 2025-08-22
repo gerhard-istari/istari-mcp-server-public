@@ -58,7 +58,7 @@ class EnoviaConnector:
 
 
   def get_issues_url(self) -> str:
-    return f"{self.get_3dspace_url()}/resources/v1/modeler/issue"
+    return f"{self.get_3dspace_url()}/resources/v1/modeler/dsiss/issue"
 
 
   def start_session(self):
@@ -201,6 +201,17 @@ class EnoviaConnector:
     return resp.json()
 
 
+  def get_issue(self,
+                issue_id: str) -> object:
+    url = f"{self.get_issues_url()}/{issue_id}"
+    params = {"$fields": "all"}
+    resp = self.session.get(url,
+                            headers=self.get_session_header(),
+                            params=params,
+                            verify=self.SSL_VERIFY)
+    return resp.json()
+
+
   def _get_env_var(self,
                    var_name: str) -> str:
     var_val = os.getenv(var_name)
@@ -211,6 +222,19 @@ class EnoviaConnector:
 
 
 @mcp.tool()
+def get_engineering_item(item_id: str) -> dict[str, str]:
+  """Gets an Enovia engineering item with the specified ID.
+
+		 Args:
+			 item_id (str): The engineering item ID
+
+		 Returns:
+       A dictionary with information about the engineering item such as name, ID, descriptions, etc.
+  """
+  return ec.get_engineering_item(item_id)
+
+
+@mcp.tool()
 def find_engineering_items(srch_str: str) -> list[dict[str, str]]:
   """Finds all Enovia engineering items that match the specified search string.
 
@@ -218,7 +242,7 @@ def find_engineering_items(srch_str: str) -> list[dict[str, str]]:
 			 srch_str (str): The string to use for matching product names
 
 		 Returns:
-       A list of engineering item dictionaries with information about the items such as name, ID, descriptions, etc.
+       A list of engineering item dictionaries with information about the items such as name, ID, description, etc.
   """
   return ec.find_engineering_items(srch_str, 
                                    100)
@@ -231,7 +255,7 @@ def get_engineering_item_instances(item_id: str) -> list[dict[str, str]]:
        item_id (str): The engineering item ID to search
 
      Returns:
-       A list of engineering instance dictionaries with information about the instances such as name, ID, descriptions, etc.
+       A list of engineering instance dictionaries with information about the instances such as name, ID, description, etc.
   """
   return ec.get_engineering_item_instances(item_id)
 
@@ -246,7 +270,7 @@ def get_engineering_item_documents(item_id: str,
        relationships (list[str]): The types of relationships of the associated documents to search for
 
      Return:
-       A list of document dictionaries with information about the documents such as name, ID, descriptions, etc.
+       A list of document dictionaries with information about the documents such as name, ID, description, etc.
   """
   return ec.get_engineering_item_documents(item_id,
                                            relationships)
@@ -260,7 +284,7 @@ def find_documents(srch_str: str) -> list[dict[str, str]]:
 			 srch_str (str): The string to use for matching documents
 
 		 Returns:
-       A list of document dictionaries with information about the documents such as name, ID, descriptions, etc.
+       A list of document dictionaries with information about the documents such as name, ID, description, etc.
   """
   return ec.find_documents(srch_str, 
                            100)
@@ -274,10 +298,23 @@ def find_issues(srch_str: str) -> list[dict[str, str]]:
 			 srch_str (str): The string to use for matching issues
 
 		 Returns:
-       A list of issue dictionaries with information about the issues such as name, ID, descriptions, etc.
+       A list of issue dictionaries with information about the issues such as name, ID, description, etc.
   """
   return ec.find_issues(srch_str, 
                         100)
+
+
+@mcp.tool()
+def get_issue(issue_id: str) -> dict[str, str]:
+  """Gets an Enovia issue with the specified ID.
+
+		 Args:
+			 issue_id (str): The issue ID
+
+		 Returns:
+       A dictionary containing information about the issue such as name, ID, description, etc.
+  """
+  return ec.get_issue(issue_id)
 
 
 if __name__ == "__main__":
