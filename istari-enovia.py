@@ -156,9 +156,9 @@ class EnoviaConnector:
     print(json.dumps(resp.json(), indent=2))
 
 
-  def get_engineering_item_documents(self,
-                                     item_id: str,
-                                     rels: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
+  def get_item_documents(self,
+                         item_id: str,
+                         rels: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
     docs = []
     for rel in rels:
       params = {
@@ -212,6 +212,45 @@ class EnoviaConnector:
     return resp.json()
 
 
+  def get_document_files(self,
+                         doc_id: str) -> object:
+    files_url = f"{self.get_documents_url()}/{doc_id}/files"
+    resp = self.session.get(files_url,
+                            headers=self.get_session_header(),
+                            verify=self.SSL_VERIFY)
+    resp.raise_for_status()
+    file_json = resp.json()
+    return file_json['data']
+
+
+  def download_document_file(self,
+                             doc_id: str,
+                             file_id: str,
+                             dest_file: str) -> None:
+    base_url = f"{self.get_documents_url()}/{doc_id}"
+    resp = self.session.get(base_url,
+                            headers=self.get_session_header(),
+                            verify=self.SSL_VERIFY)
+    csrf_tok = resp.json().get('csrf', {}).get('value', '')
+
+    ticket_url = f"{base_url}/files/{file_id}/DownloadTicket"
+    header = self.get_session_header()
+    header['ENO_CSRF_TOKEN'] = csrf_tok
+    resp = self.session.put(ticket_url,
+                            header=header,
+                            verify=self.SSL_VERIFY)
+    resp.raise_for_status()
+    download_json = resp.json()
+    download_url = download_json['data'][0]['dataelements']['ticketURL']
+    resp = self.session.get(download_url,
+                            headers=self.get_session_header(),
+                            verify=self.SSL_VERIFY,
+                            allow_redirects=True)
+    resp.raise_for_status()
+    with open(dest_file, 'wb') as fout:
+      fout.write(resp.content)
+
+
   def _get_env_var(self,
                    var_name: str) -> str:
     var_val = os.getenv(var_name)
@@ -261,8 +300,8 @@ def get_engineering_item_instances(item_id: str) -> list[dict[str, str]]:
 
 
 @mcp.tool()
-def get_engineering_item_documents(item_id: str,
-                                   relationships: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
+def get_item_documents(item_id: str,
+                       relationships: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
   """Gets documents associated with an engineering item.
 
      Args:
@@ -272,8 +311,8 @@ def get_engineering_item_documents(item_id: str,
      Return:
        A list of document dictionaries with information about the documents such as name, ID, description, etc.
   """
-  return ec.get_engineering_item_documents(item_id,
-                                           relationships)
+  return ec.get_item_documents(item_id,
+                               relationships)
 
 
 @mcp.tool()
@@ -315,6 +354,36 @@ def get_issue(issue_id: str) -> dict[str, str]:
        A dictionary containing information about the issue such as name, ID, description, etc.
   """
   return ec.get_issue(issue_id)
+
+
+@mcp.tool()
+def get_document_files(doc_id: str) -> list[dict[str, str]]:
+  """Gets the files associated with a document with the specified ID.
+
+     Args:
+       doc_id (str): The document ID
+
+     Returns:
+       A list of dictionaries containing information about the associated files such as name, ID, description, etc.
+  """
+  return ec.get_document_files(doc_id)
+
+
+@mcp.tool()
+def download_document_file(doc_id: str,
+                           file_id: str,
+                           dest_file: str) -> str:
+  """Downloads the specified file referenced (attached) by the specified document.
+
+     Args:
+       doc_id (str): The document ID
+       file_id (str): The file ID
+       dest_file (str): The path to the location to save the file
+  """
+  ec.download_document_file(doc_id,
+                            file_id,
+                            dest_file)
+  print(f"Document file downloaded successfully")
 
 
 if __name__ == "__main__":
