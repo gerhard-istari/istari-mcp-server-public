@@ -237,7 +237,7 @@ class EnoviaConnector:
     header = self.get_session_header()
     header['ENO_CSRF_TOKEN'] = csrf_tok
     resp = self.session.put(ticket_url,
-                            header=header,
+                            headers=header,
                             verify=self.SSL_VERIFY)
     resp.raise_for_status()
     download_json = resp.json()
