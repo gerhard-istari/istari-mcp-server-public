@@ -5,7 +5,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
-mcp = "=1.9.4"
+mcp = "=1.10.0"
 dotenv = "=0.9.9"
 pillow = "*"
 requests = "2.32.4"
