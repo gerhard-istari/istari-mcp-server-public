@@ -24,6 +24,9 @@ with open(mcp_json_file, 'r') as fin:
 
 zip_file = os.path.join(dist_dir,
                         f"istari-mcp-server-{platform.system()}-{version}.zip")
+if os.path.exists(zip_file):
+  os.remove(zip_file)
+
 with ZipFile(zip_file, 'w') as fout:
   # Zip resource files
   for res_file in res_files:

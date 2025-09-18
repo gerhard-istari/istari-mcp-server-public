@@ -14,11 +14,11 @@ poethepoet = "0.37.0"
 pyinstaller = "6.16.0"
 
 [tool.poe.tasks]
-build_main = "pyinstaller --clean --onefile --name=istari_main istari-main.py"
-build_3dx = "pyinstaller --clean --onefile --name=istari_3dexperience istari-3dexperience.py"
-build_cameo = "pyinstaller --clean --onefile --name=istari_cameo istari-cameo.py"
-build_enovia = "pyinstaller --clean --onefile --name=istari_enovia istari-enovia.py"
-build_excel = "pyinstaller --clean --onefile --name=istari_excel istari-excel.py"
-build_nastran = "pyinstaller --clean --onefile --name=istari_nastran istari-nastran.py"
+build_main = "pyinstaller --clean --onefile --name=istari_main.exe istari-main.py"
+build_3dx = "pyinstaller --clean --onefile --name=istari_3dexperience.exe istari-3dexperience.py"
+build_cameo = "pyinstaller --clean --onefile --name=istari_cameo.exe istari-cameo.py"
+build_enovia = "pyinstaller --clean --onefile --name=istari_enovia.exe istari-enovia.py"
+build_excel = "pyinstaller --clean --onefile --name=istari_excel.exe istari-excel.py"
+build_nastran = "pyinstaller --clean --onefile --name=istari_nastran.exe istari-nastran.py"
 build = { sequence = ["build_main", "build_3dx", "build_cameo", "build_enovia", "build_excel", "build_nastran"] }
 package = "python scripts/package_build.py"

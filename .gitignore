@@ -1,7 +1,10 @@
 *.bak
 *.swp
 *.swo
-.env
+*.spec
+*.env
 /venv
 /.venv
+/dist
+/build
 __pycache__
