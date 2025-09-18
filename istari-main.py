@@ -5,6 +5,7 @@ import tempfile
 from io import BytesIO
 from mcp.server.fastmcp import FastMCP
 from PIL import Image
+from typing import Any
 from istari_digital_client.models import NewSnapshot, NewSystem, NewSystemConfiguration, NewTrackedFile, AccessRelationship, AccessRelation, AccessSubjectType, AccessResourceType
 from istari_digital_client.models.tracked_file_specifier_type import TrackedFileSpecifierType
 
@@ -15,7 +16,13 @@ from shared.helpers import *
 mcp = FastMCP("istari-mcp-server")
 
 @mcp.tool()
-def get_models() -> dict[str, dict[str, str]]:
+def list_registry_token() -> str:
+  """Returns the current Istari registry authorization token."""
+  return REG_AUTH_TOKEN
+
+
+@mcp.tool()
+def get_models() -> dict[str, dict[str, Any]]:
   """Gets the UUIDs and associated metadata of all available models.
 
      Returns:
@@ -45,7 +52,7 @@ def get_models() -> dict[str, dict[str, str]]:
 
 
 @mcp.tool()
-def get_users() -> dict[str, dict[str, str]]:
+def get_users() -> dict[str, dict[str, Any]]:
   """Gets the UUIDs and associated metadata of all users.
 
      Returns:
@@ -66,7 +73,7 @@ def get_users() -> dict[str, dict[str, str]]:
 
 
 @mcp.tool()
-def get_systems() -> dict[str, dict[str, str]]:
+def get_systems() -> dict[str, dict[str, Any]]:
   """Gets the UUIDs and associated metadata of all available systems.
 
      Returns:
@@ -118,7 +125,7 @@ def share_resource_with_user(resource_id: str,
 
 
 @mcp.tool()
-def get_model_artifacts(model_id: str) -> dict[str, dict[str, str]]:
+def get_model_artifacts(model_id: str) -> dict[str, dict[str, Any]]:
   """Gets the UUIDs and associated metadata of all artifacts produced by a specified model.
 
      Args:
@@ -247,7 +254,7 @@ def get_system_model_ids(system_id: str,
 
 
 @mcp.tool()
-def get_system_snapshots(system_id: str) -> dict[str, dict[str, str]]:
+def get_system_snapshots(system_id: str) -> dict[str, dict[str, Any]]:
   """Gets the snapshots associated with a specified system.
 
      Args:
@@ -294,7 +301,7 @@ def get_system_snapshots(system_id: str) -> dict[str, dict[str, str]]:
 
 
 @mcp.tool()
-def get_system_configurations(system_id: str) -> dict[str, dict[str, str]]:
+def get_system_configurations(system_id: str) -> dict[str, dict[str, Any]]:
   """Gets the configurations associated with a specified system.
 
      Args:

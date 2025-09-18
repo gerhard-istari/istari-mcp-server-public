@@ -80,8 +80,6 @@ class EnoviaConnector:
                             headers=headers,
                             verify=self.SSL_VERIFY)
     tgt = response.json()["access_token"]
-    print(f"TGT Access Token: {tgt}")
-
 
     # Get ST (Service Ticket) from TGT
     url = f"{self.get_3dpassport_url()}/api/login/cas/transient?tgt={tgt}&service={urllib.parse.quote(self.BASE_URL + '/3dspace/')}"
@@ -90,7 +88,6 @@ class EnoviaConnector:
                             headers=header,
                             verify=self.SSL_VERIFY)
     st = response.json()["access_token"]
-    print(f"ST Access Token: {st}")
 
     # Use ST to Authenticate Session
     self.session = requests.Session()
