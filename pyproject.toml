@@ -10,7 +10,7 @@ dotenv = "=0.9.9"
 pillow = "*"
 requests = "2.32.4"
 istari_digital_client = "=7.19.1"
-poethepoet = "^0.26.1"
+poethepoet = "0.37.0"
 pyinstaller = "6.16.0"
 
 [tool.poe.tasks]
