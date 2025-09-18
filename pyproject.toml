@@ -4,9 +4,21 @@ version = "1.0.0"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.11,<3.13"
 mcp = "=1.10.0"
 dotenv = "=0.9.9"
 pillow = "*"
 requests = "2.32.4"
 istari_digital_client = "=7.19.1"
+poethepoet = "^0.26.1"
+pyinstaller = "6.16.0"
+
+[tool.poe.tasks]
+build_main = "pyinstaller --clean --onefile --name=istari_main istari-main.py"
+build_3dx = "pyinstaller --clean --onefile --name=istari_3dexperience istari-3dexperience.py"
+build_cameo = "pyinstaller --clean --onefile --name=istari_cameo istari-cameo.py"
+build_enovia = "pyinstaller --clean --onefile --name=istari_enovia istari-enovia.py"
+build_excel = "pyinstaller --clean --onefile --name=istari_excel istari-excel.py"
+build_nastran = "pyinstaller --clean --onefile --name=istari_nastran istari-nastran.py"
+build = { sequence = ["build_main", "build_3dx", "build_cameo", "build_enovia", "build_excel", "build_nastran"] }
+package = "python scripts/package_build.py"

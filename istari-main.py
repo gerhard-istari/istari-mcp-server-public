@@ -160,8 +160,37 @@ def get_model_artifacts(model_id: str) -> dict[str, dict[str, str]]:
 @mcp.tool()
 def get_model_artifact(model_id: str,
                        artifact_name: str) -> bytes:
-  return download_artifact_data(model_id,
-                                artifact_name)
+  """Retrieves the contents of the specified artifact.
+     
+     Args:
+       model_id (str): The model ID that contains the desired artifact.
+       artifact_name (str): The name of the artifact to retrieve.
+
+     Returns:
+       The contents of the artifact as a string.
+  """
+  art_data = download_artifact_data(model_id,
+                                    artifact_name)
+  return art_data.decode('windows-1250')
+
+
+@mcp.tool()
+def download_model_artifact(model_id: str,
+                            artifact_name: str,
+                            file_name: str) -> str:
+  """Downloads the specified artifact to the named file.
+
+     Args:
+       model_id (str): The model ID that contains the desired artifact.
+       artifact_name (str): The name of the artifact to retrieve.
+       file_name (str): The path to save the artifact contents to.
+  """
+  art_bytes = download_artifact_data(model_id,
+                                     artifact_name)
+  with open(file_name, 'wb') as fout:
+    fout.write(art_bytes)
+
+  return 'Artifact downloaded successfully'
 
 
 @mcp.tool()
