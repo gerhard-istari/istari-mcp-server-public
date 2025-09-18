@@ -202,4 +202,3 @@ def format_str(text: str,
     fmt_str += f";{effect2}"
 
   return f"{fmt_str}m{text}{FMT_PREFIX}0m"
-

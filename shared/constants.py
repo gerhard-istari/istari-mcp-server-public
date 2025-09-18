@@ -2,14 +2,19 @@ import dotenv
 import os
 import sys
 
-exe_file = os.path.basename(sys.executable)
-exe_name = os.path.splitext(exe_file)[0]
-if exe_name.lower() == 'python':
-  dotenv.load_dotenv()
-else:
+
+def is_executable() -> bool:
+  exe_file = os.path.basename(sys.executable)
+  exe_name = os.path.splitext(exe_file)[0]
+  return exe_name.lower() != 'python'
+
+
+if is_executable():
   dotenv_file = os.path.join(os.path.dirname(sys.executable),
                              '.env')
   dotenv.load_dotenv(dotenv_path=dotenv_file)
+else:
+  dotenv.load_dotenv()
 
 CAD_TOOL_NAME = 'dassault_3dexperience'
 CAMEO_TOOL_NAME = 'dassault_cameo'

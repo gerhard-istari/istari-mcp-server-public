@@ -12,7 +12,9 @@ A service secret can be generated from 3DX Platform Manager ->
 import json
 import os
 import requests
+import sys
 import urllib.parse
+
 from mcp.server.fastmcp import FastMCP
 
 from istari_digital_client.models.tracked_file_specifier_type import TrackedFileSpecifierType
@@ -27,7 +29,13 @@ ec = None
 class EnoviaConnector:
 
   def __init__(self):
-    dotenv.load_dotenv(dotenv_path='enovia.env',override=True)
+    dotenv_file = 'enovia.env'
+    if is_executable():
+      dotenv_file = os.path.join(os.path.dirname(sys.executable),
+                                 dotenv_file)
+
+    dotenv.load_dotenv(dotenv_path=dotenv_file,
+                       override=True)
     self.BASE_URL = self._get_env_var('BASE_URL')
 
 
