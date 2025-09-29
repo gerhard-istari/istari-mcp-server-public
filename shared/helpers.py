@@ -1,8 +1,15 @@
+import asyncio
+import random
+
 from time import sleep
+from typing import Callable
 
 from istari_digital_client import Client, Configuration, Job, Model
 from istari_digital_client.models import JobStatusName
+
 from shared.constants import REG_URL, REG_AUTH_TOKEN
+from evaluators.openai_thread_evaluator import evaluate_query
+from evaluators.query_status import QueryStatus
 
 
 job_list = []
@@ -153,7 +160,7 @@ def download_artifact_data(model_id: str,
           for art_rev_src in art_rev.sources:
             try:
               if art_rev_src.revision_id == mod_rev_id:
-                return art_rev.read_bytes()
+                return get_artifact_data(art_rev)
             except Exception as excp:
               print(f"Exception: {excp}")
 
@@ -176,6 +183,66 @@ def download_artifact(model_id: str,
     dest_file = artifact_name
   with open(dest_file, 'wb') as fout:
     fout.write(art_bytes)
+
+
+def get_artifact_data(art_rev: object) -> bytes:
+  """
+  Searches the model cache for the specified artifact revision. If there is a 
+  cache hit, returns the cached data. Otherwise, the artifact is downloaded 
+  from the Istari platform and cached.
+  """
+  art_file = os.path.join(model_cache_dir,
+                          art_rev.id)
+  art_bytes = None
+  if os.path.exists(art_file):
+    with open(art_file, 'rb') as fin:
+      art_bytes = fin.read()
+  else:
+    art_bytes = art_rev.read_bytes()
+    with open(art_file, 'wb') as fout:
+      fout.write(art_bytes)
+    
+  return art_bytes
+
+
+async def submit_query(query: str,
+                       item_obj: str,
+                       eval_item: Callable[[str, str], QueryStatus],
+                       max_wait_time: int) -> QueryStatus:
+  rand_wait = max_wait_time / random.randint(1, 50)
+  sleep(rand_wait)
+  return await eval_item(query, 
+                         item_obj)
+
+
+async def search_artifact_data(query: str,
+                               art_iter: iter,
+                               eval_item: Callable[[str, str], QueryStatus] = evaluate_query,
+                               batch_group_count: int = 10,
+                               max_iter_delay: int = 2) -> list[str]:
+  matches = []
+  batch_group = []
+  iter_idx = 0
+  batch_idx = 1
+  for art_item in art_iter:
+    batch_group.append(art_item)
+    iter_idx += 1
+
+    if iter_idx == batch_group_count:
+      print(f"Searching batch: {batch_idx}")
+      batch_idx += 1
+      query_results = await asyncio.gather(
+        *[submit_query(query, batch_item, eval_item, max_iter_delay) \
+        for batch_item in batch_group])
+      for query_result, iter_item in zip(query_results, batch_group):
+        if query_result == QueryStatus.MATCH:
+          print('Found match')
+          matches.append(iter_item)
+
+      iter_idx = 0
+      batch_group.clear()
+
+  return matches
 
 
 def get_input(msg: str,
