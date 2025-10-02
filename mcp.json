@@ -35,6 +35,13 @@
       "alwaysAllow": [],
       "timeout": 3600
     },
+    "istari_pdf": {
+      "command": "istari_pdf.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
     "istari_enovia": {
       "command": "istari_enovia.exe",
       "args": [],
