@@ -22,6 +22,7 @@ CAMEO_VERSION = os.getenv('CAMEO_VERSION')
 EXCEL_TOOL_NAME = 'microsoft_office_excel'
 NASTRAN_TOOL_NAME = 'msc_nastran'
 NASTRAN_EXTRACT_TOOL_NAME = 'nastran_extract'
+PDF_TOOL_NAME = 'open_pdf'
 
 REG_URL = os.getenv('REG_URL')
 REG_AUTH_TOKEN = os.getenv('REG_AUTH_TOKEN')
@@ -37,6 +38,7 @@ MOD_WB_FILE_NAME = 'modified_workbook.xlsx'
 OP2_SUMMARY_FILE_NAME = 'op2_summary.json'
 NASTRAN_RESULTS_FILE_NAME = 'model.op2'
 MAT_SUMMARY_FILE_NAME = 'material_summary.json'
+PDF_FILE_NAME = ''
 
 GREEN_COLOR = 32
 RED_COLOR = 31
