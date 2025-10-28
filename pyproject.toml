@@ -22,5 +22,6 @@ build_enovia = "pyinstaller --clean --onefile --name=istari_enovia.exe istari-en
 build_excel = "pyinstaller --clean --onefile --name=istari_excel.exe istari-excel.py"
 build_nastran = "pyinstaller --clean --onefile --name=istari_nastran.exe istari-nastran.py"
 build_pdf = "pyinstaller --clean --onefile --name=istari_pdf.exe istari-pdf.py"
-build = { sequence = ["build_main", "build_3dx", "build_cameo", "build_enovia", "build_excel", "build_nastran", "build_pdf"] }
+build_simulink = "pyinstaller --clean --onefile --name=istari_simulink.exe istari-simulink.py"
+build = { sequence = ["build_main", "build_3dx", "build_cameo", "build_enovia", "build_excel", "build_nastran", "build_pdf", "build_simulink"] }
 package = "python scripts/package_build.py"

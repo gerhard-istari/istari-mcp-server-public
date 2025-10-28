@@ -11,11 +11,11 @@ gen_cli = AsyncOpenAI(api_key=os.getenv('OPENAI_TOKEN'),
                       base_url=os.getenv('OPENAI_URL'))
 assistant_id = os.getenv('OPENAI_ASSISTANT_ID')
 
-async def evaluate_query(query: str,
+async def evaluate_query(query: list[str],
                          item: str) -> QueryStatus:
   prompt = (
     f"Given the following data: {item}\n\n"
-    f"Is the following query satisfied (yes or no): {query}"
+    f"Are any of the following queries satisfied (yes or no): {str(query)}"
   )
   thread_cont = {
     "messages": [

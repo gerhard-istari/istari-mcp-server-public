@@ -16,6 +16,7 @@ import sys
 import urllib.parse
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Json
 
 from istari_digital_client.models.tracked_file_specifier_type import TrackedFileSpecifierType
 
@@ -88,6 +89,7 @@ class EnoviaConnector:
                             headers=headers,
                             verify=self.SSL_VERIFY)
     tgt = response.json()["access_token"]
+    print(f"TGT Access Token: {tgt}")
 
     # Get ST (Service Ticket) from TGT
     url = f"{self.get_3dpassport_url()}/api/login/cas/transient?tgt={tgt}&service={urllib.parse.quote(self.BASE_URL + '/3dspace/')}"
@@ -96,6 +98,7 @@ class EnoviaConnector:
                             headers=header,
                             verify=self.SSL_VERIFY)
     st = response.json()["access_token"]
+    print(f"ST Access Token: {st}")
 
     # Use ST to Authenticate Session
     self.session = requests.Session()
@@ -163,7 +166,7 @@ class EnoviaConnector:
 
   def get_item_documents(self,
                          item_id: str,
-                         rels: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
+                         rels: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, object]]:
     docs = []
     for rel in rels:
       params = {
@@ -245,13 +248,25 @@ class EnoviaConnector:
                             headers=header,
                             verify=self.SSL_VERIFY)
     resp.raise_for_status()
+
+    with open('enovia_mcp.log', 'a') as fout:
+      fout.write(f"dest_file = {dest_file}\n")
     download_json = resp.json()
     download_url = download_json['data'][0]['dataelements']['ticketURL']
+    if download_url is None or not len(download_url):
+      raise ValueError("Download URL not found")
+
+    with open('enovia_mcp.log', 'a') as fout:
+      fout.write(f"download_url = {download_url}\n")
     resp = self.session.get(download_url,
                             headers=self.get_session_header(),
                             verify=self.SSL_VERIFY,
                             allow_redirects=True)
     resp.raise_for_status()
+
+    if resp.content is None or not len(resp.content):
+      raise ValueError("Document content is empty")
+
     with open(dest_file, 'wb') as fout:
       fout.write(resp.content)
 
@@ -266,11 +281,11 @@ class EnoviaConnector:
 
 
 @mcp.tool()
-def get_engineering_item(item_id: str) -> dict[str, str]:
+def get_engineering_item(item_id: str) -> Json:
   """Gets an Enovia engineering item with the specified ID.
 
 		 Args:
-			 item_id (str): The engineering item ID
+			 item_id (str): The engineering item ID. The ID must first be found by calling find_engineering_items with the item name.
 
 		 Returns:
        A dictionary with information about the engineering item such as name, ID, descriptions, etc.
@@ -279,7 +294,7 @@ def get_engineering_item(item_id: str) -> dict[str, str]:
 
 
 @mcp.tool()
-def find_engineering_items(srch_str: str) -> list[dict[str, str]]:
+def find_engineering_items(srch_str: str) -> Json:
   """Finds all Enovia engineering items that match the specified search string.
 
 		 Args:
@@ -292,7 +307,7 @@ def find_engineering_items(srch_str: str) -> list[dict[str, str]]:
                                    100)
 
 @mcp.tool()
-def get_engineering_item_instances(item_id: str) -> list[dict[str, str]]:
+def get_engineering_item_instances(item_id: str) -> Json:
   """Gets all instances (subassemblies, subcomponents, parts, etc.) of the specified engineering item.
 
      Args:
@@ -306,11 +321,11 @@ def get_engineering_item_instances(item_id: str) -> list[dict[str, str]]:
 
 @mcp.tool()
 def get_item_documents(item_id: str,
-                       relationships: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> list[dict[str, str]]:
+                       relationships: list[str] = ["Reference Document", "PLMDocConnection", "SpecificationDocument"]) -> Json:
   """Gets documents associated with an engineering item.
 
      Args:
-       item_id (str): The engineering item ID
+       item_id (str): The engineering item ID.
        relationships (list[str]): The types of relationships of the associated documents to search for
 
      Return:
@@ -321,7 +336,7 @@ def get_item_documents(item_id: str,
 
 
 @mcp.tool()
-def find_documents(srch_str: str) -> list[dict[str, str]]:
+def find_documents(srch_str: str) -> Json:
   """Finds all Enovia documents that match the specified search string.
 
 		 Args:
@@ -335,7 +350,7 @@ def find_documents(srch_str: str) -> list[dict[str, str]]:
 
 
 @mcp.tool()
-def find_issues(srch_str: str) -> list[dict[str, str]]:
+def find_issues(srch_str: str) -> Json:
   """Finds all Enovia issues that match the specified search string.
 
 		 Args:
@@ -349,11 +364,11 @@ def find_issues(srch_str: str) -> list[dict[str, str]]:
 
 
 @mcp.tool()
-def get_issue(issue_id: str) -> dict[str, str]:
+def get_issue(issue_id: str) -> Json:
   """Gets an Enovia issue with the specified ID.
 
 		 Args:
-			 issue_id (str): The issue ID
+			 issue_id (str): The issue ID. The ID must first be found by calling find_issues with the issue name.
 
 		 Returns:
        A dictionary containing information about the issue such as name, ID, description, etc.
@@ -362,11 +377,11 @@ def get_issue(issue_id: str) -> dict[str, str]:
 
 
 @mcp.tool()
-def get_document_files(doc_id: str) -> list[dict[str, str]]:
+def get_document_files(doc_id: str) -> Json:
   """Gets the files associated with a document with the specified ID.
 
      Args:
-       doc_id (str): The document ID
+       doc_id (str): The document ID. The ID of a document must first be found by calling find_documents with the document name.
 
      Returns:
        A list of dictionaries containing information about the associated files such as name, ID, description, etc.
@@ -381,14 +396,18 @@ def download_document_file(doc_id: str,
   """Downloads the specified file referenced (attached) by the specified document.
 
      Args:
-       doc_id (str): The document ID
+       doc_id (str): The document ID. The ID of a document must first be found by calling find_documents with the document name.
        file_id (str): The file ID
        dest_file (str): The path to the location to save the file
   """
+  dest_dir = os.path.dirname(os.path.abspath(dest_file))
+  if not os.path.exists(dest_dir):
+    os.makedirs(dest_dir)
+
   ec.download_document_file(doc_id,
                             file_id,
                             dest_file)
-  print(f"Document file downloaded successfully")
+  return "Document file downloaded successfully"
 
 
 if __name__ == "__main__":
@@ -396,3 +415,6 @@ if __name__ == "__main__":
   ec.start_session()
   print("MCP Server is running")
   mcp.run(transport='stdio')
+  #print(get_issue('ci-7368060-0001133'))
+  #print(get_item_documents('0E116F29531C000068A4B876000032A4'))
+  #print(get_document_files('DOC-7368060-0068541'))

@@ -35,7 +35,7 @@ with ZipFile(zip_file, 'w') as fout:
 
   # Package mcp servers
   for mcp_server in mcp_json['mcpServers'].values():
-    mcp_server_name = mcp_server['command']
+    mcp_server_name = os.path.basename(mcp_server['command'])
     print(f"Packaging binaries: {mcp_server_name}")
     bin_file = os.path.join(dist_dir,
                             mcp_server_name)

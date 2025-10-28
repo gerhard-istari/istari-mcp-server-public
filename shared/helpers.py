@@ -1,14 +1,17 @@
 import asyncio
+import multiprocessing
+import os
 import random
+import tempfile
 
 from time import sleep
 from typing import Callable
 
-from istari_digital_client import Client, Configuration, Job, Model
+from istari_digital_client import Client, Configuration, Job, Model, NewSource
 from istari_digital_client.models import JobStatusName
 
 from shared.constants import REG_URL, REG_AUTH_TOKEN
-from evaluators.openai_thread_evaluator import evaluate_query
+from evaluators.regex_evaluator import evaluate_query
 from evaluators.query_status import QueryStatus
 
 
@@ -26,13 +29,19 @@ def submit_job(model_id: str,
                function: str,
                tool_name: str,
                tool_ver: str = None,
-               params_file: str = None) -> Job:
+               operating_system = None,
+               params_file: str = None,
+               assigned_agent_id: str = None,
+               sources: list[NewSource | str] = None) -> Job:
   client = get_client()
   job =  client.add_job(model_id,
                         function = function,
                         tool_name = tool_name,
                         tool_version = tool_ver,
-                        parameters_file = params_file)
+                        operating_system = operating_system,
+                        parameters_file = params_file,
+                        assigned_agent_id = assigned_agent_id,
+                        sources = sources)
   job_list.append(job.id)
   return job
 
@@ -41,7 +50,8 @@ def wait_for_job(job) -> Job:
   client = get_client()
   empty_str = ' ' * 64
   while not job.status.name in [JobStatusName.COMPLETED, 
-                                JobStatusName.FAILED]:
+                                JobStatusName.FAILED,
+                                JobStatusName.CANCELED]:
     sleep(1)
     job = client.get_job(job.id)
     print(empty_str, end="\r")
@@ -191,10 +201,11 @@ def get_artifact_data(art_rev: object) -> bytes:
   cache hit, returns the cached data. Otherwise, the artifact is downloaded 
   from the Istari platform and cached.
   """
+  model_cache_dir = tempfile.gettempdir()
   art_file = os.path.join(model_cache_dir,
                           art_rev.id)
   art_bytes = None
-  if os.path.exists(art_file):
+  if False: #os.path.exists(art_file):
     with open(art_file, 'rb') as fin:
       art_bytes = fin.read()
   else:
@@ -206,41 +217,79 @@ def get_artifact_data(art_rev: object) -> bytes:
 
 
 async def submit_query(query: str,
-                       item_obj: str,
-                       eval_item: Callable[[str, str], QueryStatus],
-                       max_wait_time: int) -> QueryStatus:
+                 item_objs: list[str],
+                 eval_item: Callable[[str, str], QueryStatus],
+                 max_wait_time: int) -> QueryStatus:
   rand_wait = max_wait_time / random.randint(1, 50)
   sleep(rand_wait)
-  return await eval_item(query, 
-                         item_obj)
+  results = []
+  for item_obj in item_objs:
+    result = await eval_item(query,
+                       item_obj)
+    results.append(result)
+
+  return (item_objs, results)
 
 
-async def search_artifact_data(query: str,
+async def search_artifact_data(query: list[str],
                                art_iter: iter,
                                eval_item: Callable[[str, str], QueryStatus] = evaluate_query,
                                batch_group_count: int = 10,
-                               max_iter_delay: int = 2) -> list[str]:
-  matches = []
+                               max_iter_delay: int = 2,
+                               add_items: bool = False) -> list[str]:
   batch_group = []
+  args = []
+  query_results = []
   iter_idx = 0
   batch_idx = 1
-  for art_item in art_iter:
-    batch_group.append(art_item)
-    iter_idx += 1
+  is_last = False
+  print('Starting processing')
+  while True:
+    try:
+      art_item = art_iter.__next__()
+      batch_group.append(art_item)
+      iter_idx += 1
+    except StopIteration:
+      is_last = True
 
-    if iter_idx == batch_group_count:
+    if not iter_idx % batch_group_count or is_last:
       print(f"Searching batch: {batch_idx}")
       batch_idx += 1
-      query_results = await asyncio.gather(
-        *[submit_query(query, batch_item, eval_item, max_iter_delay) \
-        for batch_item in batch_group])
-      for query_result, iter_item in zip(query_results, batch_group):
-        if query_result == QueryStatus.MATCH:
-          print('Found match')
-          matches.append(iter_item)
+      #args.append((query, batch_group, eval_item, max_iter_delay))
+      query_result = await submit_query(query, batch_group, eval_item, max_iter_delay)
+      query_results.append(query_result)
 
-      iter_idx = 0
-      batch_group.clear()
+      if is_last: break
+      batch_group = []
+
+  #print('Starting multiprocessing')
+  #with multiprocessing.Pool(processes=12) as pool:
+  #  query_results = pool.starmap(submit_query, args)
+  print('Finished')
+
+  matches = []
+  prev_art_item = None
+  prev_match = False
+  added_prev_item = False
+  for iter_items, batch_results in query_results:
+    for iter_item, query_result in zip(iter_items, batch_results):
+      if query_result == QueryStatus.MATCH:
+        print('Found match')
+        if add_items and prev_art_item and not added_prev_item: 
+          matches.append(prev_art_item)
+
+        matches.append(iter_item)
+        prev_art_item = iter_item
+        added_prev_item = True
+        prev_match = True
+      elif prev_match:
+        matches.append(iter_item)
+        prev_match = False
+      else:
+        added_prev_item = False
+        prev_match = False
+
+      prev_art_item = iter_item
 
   return matches
 

@@ -2,6 +2,7 @@ import json
 import os
 import random
 import tempfile
+
 from io import BytesIO
 from mcp.server.fastmcp import FastMCP
 from PIL import Image
