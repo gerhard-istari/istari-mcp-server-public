@@ -1,5 +1,4 @@
 import asyncio
-import multiprocessing
 import os
 import random
 import tempfile
@@ -170,7 +169,7 @@ def download_artifact_data(model_id: str,
           for art_rev_src in art_rev.sources:
             try:
               if art_rev_src.revision_id == mod_rev_id:
-                return get_artifact_data(art_rev)
+                return art_rev.read_bytes()
             except Exception as excp:
               print(f"Exception: {excp}")
 
