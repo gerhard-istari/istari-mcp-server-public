@@ -37,7 +37,7 @@ class EnoviaConnector:
 
     dotenv.load_dotenv(dotenv_path=dotenv_file,
                        override=True)
-    self.BASE_URL = self._get_env_var('BASE_URL')
+    self.BASE_URL = self._get_env_var('ENOVIA_URL')
 
 
   def get_standard_header(self) -> dict[str, str]:

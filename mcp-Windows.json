@@ -1,0 +1,60 @@
+{
+  "mcpServers": {
+    "istari_server": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_main.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_3dx": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_3dexperience.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_cameo": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_cameo.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_excel": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_excel.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_nastran": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_nastran.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_pdf": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_pdf.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_simulink": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_simulink.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    },
+    "istari_enovia": {
+      "command": "${env:USERPROFILE}/istari_mcp/istari_enovia.exe",
+      "args": [],
+      "disabled": false,
+      "alwaysAllow": [],
+      "timeout": 3600
+    }
+  }
+}
