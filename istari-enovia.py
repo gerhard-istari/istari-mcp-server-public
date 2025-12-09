@@ -23,7 +23,7 @@ from shared.constants import *
 from shared.helpers import *
 
 
-mcp = FastMCP("istari-mcp-server")
+mcp = FastMCP("istari-enovia-server")
 ec = None
 
 class EnoviaConnector:

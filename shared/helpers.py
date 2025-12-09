@@ -132,10 +132,11 @@ def download_artifact_orig(model_id: str,
 
 
 def download_artifact_data(model_id: str,
-                           artifact_name: str) -> bytes:
+                           artifact_name: str,
+                           art_rev_id: str = None) -> bytes:
   client = get_client()
   mod = client.get_model(model_id)
-  mod_rev_id = mod.file.revisions[-1].id
+  des_rev_id = mod.file.revisions[-1].id if art_rev_id is None else art_rev_id
 
   pg_idx = 1
   while True:
@@ -149,10 +150,12 @@ def download_artifact_data(model_id: str,
     # version of the model
     for art in arts:
       if art.name == artifact_name:
-        for art_rev in art.revisions:
-          for art_rev_src in art_rev.sources:
+        if art_rev_id is None:
+          return art.file.revisions[-1].read_bytes()
+        else:
+          for art_rev in art.file.revisions:
             try:
-              if art_rev_src.revision_id == mod_rev_id:
+              if art_rev.id == art_rev_id:
                 return art_rev.read_bytes()
             except Exception as excp:
               print(f"Exception: {excp}")
@@ -176,6 +179,125 @@ def download_artifact(model_id: str,
     dest_file = artifact_name
   with open(dest_file, 'wb') as fout:
     fout.write(art_bytes)
+
+
+def download_model_data(model_id: str) -> bytes:
+  client = get_client()
+  mod = client.get_model(model_id)
+  mod_rev = mod.file.revisions[-1]
+  return mod_rev.read_bytes()
+
+
+def download_model(model_id: str,
+                   dest_file: str = None) -> None:
+  mod_bytes = download_model_data(model_id)
+  if dest_file is None:
+    mod = client.get_model(model_id)
+    dest_file = mod.display_name
+    if dest_file is None:
+      dest_file = mod.name
+
+  with open(dest_file, 'wb') as fout:
+    fout.write(mod_bytes)
+
+
+def get_artifact_data(art_rev: object) -> bytes:
+  """
+  Searches the model cache for the specified artifact revision. If there is a 
+  cache hit, returns the cached data. Otherwise, the artifact is downloaded 
+  from the Istari platform and cached.
+  """
+  model_cache_dir = tempfile.gettempdir()
+  art_file = os.path.join(model_cache_dir,
+                          art_rev.id)
+  art_bytes = None
+  if False: #os.path.exists(art_file):
+    with open(art_file, 'rb') as fin:
+      art_bytes = fin.read()
+  else:
+    art_bytes = art_rev.read_bytes()
+    with open(art_file, 'wb') as fout:
+      fout.write(art_bytes)
+    
+  return art_bytes
+
+
+async def submit_query(query: str,
+                 item_objs: list[str],
+                 eval_item: Callable[[str, str], QueryStatus],
+                 max_wait_time: int) -> QueryStatus:
+  rand_wait = max_wait_time / random.randint(1, 50)
+  sleep(rand_wait)
+  results = []
+  for item_obj in item_objs:
+    result = await eval_item(query,
+                       item_obj)
+    results.append(result)
+
+  return (item_objs, results)
+
+
+async def search_artifact_data(query: list[str],
+                               art_iter: iter,
+                               eval_item: Callable[[str, str], QueryStatus] = evaluate_query,
+                               batch_group_count: int = 10,
+                               max_iter_delay: int = 2,
+                               add_items: bool = False) -> list[str]:
+  batch_group = []
+  args = []
+  query_results = []
+  iter_idx = 0
+  batch_idx = 1
+  is_last = False
+  print('Starting processing')
+  while True:
+    try:
+      art_item = art_iter.__next__()
+      batch_group.append(art_item)
+      iter_idx += 1
+    except StopIteration:
+      is_last = True
+
+    if not iter_idx % batch_group_count or is_last:
+      print(f"Searching batch: {batch_idx}")
+      batch_idx += 1
+      #args.append((query, batch_group, eval_item, max_iter_delay))
+      query_result = await submit_query(query, batch_group, eval_item, max_iter_delay)
+      query_results.append(query_result)
+
+      if is_last: break
+      batch_group = []
+
+  #print('Starting multiprocessing')
+  #with multiprocessing.Pool(processes=12) as pool:
+  #  query_results = pool.starmap(submit_query, args)
+  print('Finished')
+
+  matches = []
+  prev_art_item = None
+  prev_match = False
+  added_prev_item = False
+  for iter_items, batch_results in query_results:
+    for iter_item, query_result in zip(iter_items, batch_results):
+      if query_result == QueryStatus.MATCH:
+        print('Found match')
+        if add_items and prev_art_item and not added_prev_item: 
+          matches.append(prev_art_item)
+
+        matches.append(iter_item)
+        prev_art_item = iter_item
+        added_prev_item = True
+        prev_match = True
+      elif prev_match:
+        matches.append(iter_item)
+        prev_match = False
+      else:
+        added_prev_item = False
+        prev_match = False
+
+      prev_art_item = iter_item
+
+  return matches
 
 
 def get_input(msg: str,

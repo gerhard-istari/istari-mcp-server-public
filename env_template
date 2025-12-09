@@ -1,11 +1,15 @@
-# Dev Environment
-DEV_DOMAIN = 'dev'
-DEV_REG_AUTH_TOKEN = ''
-
-# Demo Environment
-DEMO_DOMAIN = 'demo'
-DEMO_REG_AUTH_TOKEN = ''
-
-REG_URL = "https://fileservice-v2.${DEMO_DOMAIN}.istari.app/"
-REG_AUTH_TOKEN = ${DEMO_REG_AUTH_TOKEN}
+# To obtain the registry URL, from within the Istari platform:
+# 1) Click your username in the lower left corner and select `Developer Settings`.
+# 2) Click `Registry Information`.
+# 3) Copy the registry URL and paste it between the double quotes for `REG_URL`
+#    below.
+#
+# To obtain the registry authorization token, from within the Istari platform:
+# 1) Click your username in the lower left corner and select `Developer Settings`.
+# 2) Click `Personal Access Tokens`.
+# 3) Click `Generate New Token`.
+# 4) Give the token a name and then copy the token and paste it between the
+#    quotes for `REG_AUTH_TOKEN` below.
+REG_URL = ""
+REG_AUTH_TOKEN = ""
 CAMEO_VERSION = "2022x-Refresh2"
