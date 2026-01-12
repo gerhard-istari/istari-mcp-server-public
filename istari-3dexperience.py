@@ -10,7 +10,7 @@ from shared.constants import *
 from shared.helpers import *
 
 
-mcp = FastMCP("istari-mcp-server")
+mcp = FastMCP("istari-3dexperience-server")
 
 
 @mcp.tool()
@@ -82,17 +82,20 @@ def extract_3dx_model_parameters(model_id: str,
   """
   print('Submitting job to extract 3DX model requirements ...')
 
-  input_file = 'input.json'
+  input_file = os.path.join(tempfile.gettempdir(),
+                            'input.json')
   with open(input_file, 'w') as fout:
     fout.write(f"{{\"full_extract\": {str(full_extract).lower()}}}")
 
-  job = submit_job(model_id = model_id,
-                   function = '@istari:extract_parameters',
-                   tool_name = CAD_TOOL_NAME,
-                   params_file = input_file)
-  print(f"Job submitted with ID: {job.id}")
+  try:
+    job = submit_job(model_id = model_id,
+                     function = '@istari:extract_parameters',
+                     tool_name = CAD_TOOL_NAME,
+                     params_file = input_file)
+    print(f"Job submitted with ID: {job.id}")
+  finally:
+    os.remove(input_file)
 
-  os.remove(input_file)
   job = wait_for_job(job)
   return f"Job Complete [{job.status.name}]"
 
@@ -110,27 +113,35 @@ def update_3dx_model_parameters(model_id: str,
 
   #params = params.replace('\\', '\\\\')
   input_json = {'parameters': params} #json.loads(params)}
-  input_file = 'input.json'
+  input_file = os.path.join(tempfile.gettempdir(),
+                            'input.json')
   with open(input_file, 'w') as fout:
     json.dump(input_json,
               fout)
 
-  job = submit_job(model_id = model_id,
-                   function = '@istari:update_parameters',
-                   tool_name = CAD_TOOL_NAME,
-                   params_file = input_file)
-  print(f"Job submitted with ID: {job.id}")
+  try:
+    job = submit_job(model_id = model_id,
+                     function = '@istari:update_parameters',
+                     tool_name = CAD_TOOL_NAME,
+                     params_file = input_file)
+    print(f"Job submitted with ID: {job.id}")
+  finally:
+    os.remove(input_file)
 
-  os.remove(input_file)
   job = wait_for_job(job)
 
   client = get_client()
   mod = client.get_model(model_id);
-  with open(mod.name, 'wb') as fout:
+  mod_file = os.path.join(tempfile.gettempdir(),
+                          mod.name)
+  with open(mod_file, 'wb') as fout:
     fout.write(mod.file.revisions[0].read_bytes())
 
-  client.update_model(model_id,
-                      mod.name)
+  try:
+    client.update_model(model_id,
+                        mod_file)
+  finally:
+    os.remove(mod_file)
 
   return f"Job Complete [{job.status.name}]"
 

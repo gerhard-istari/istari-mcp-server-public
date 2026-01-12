@@ -1,8 +1,21 @@
 # Execution Environment
 ## General Setup
 
+Extract the zip archive to the following directory, depending on operating
+system:
+
+### Windows
+`%USERPROFILE%/istari_mcp/`
+
+### MacOS
+`$HOME/Library/istari_mcp/`
+
+### Linux
+`/opt/local/istari_mcp/`
+
 Use the `env_template` as a guide for creating a `.env` file with the
-appropriate values.
+appropriate values.  This file should be placed in the directory containing the
+MCP executable binaries.
 
 ## Enovia Server
 
@@ -12,17 +25,17 @@ clicking the compass and navigating to:
 `Platform Manager --> 3DPassport Control Center --> Integration --> Batch Services`
 
 Use the `enovia_env_template` as a guide for creating an `enovia.env` file with
-the service name and secret from the newly created batch service.
+the service name and secret from the newly created batch service.  This file
+should be placed in the directory containing the MCP executable binaries.
 
 ## MCP Configuration
 
 Copy the text from the `mcp.json` file into the LLM client-specific
-configuration file.  The `command` entries for each of the MCP server commands
-should be updated to the fully qualified paths to the extracted MCP server
-binaries.
+configuration file:
 
 ### Roo Code
-Update the project or global mcp_settings.json file.
+Update the project or global `mcp_settings.json` or `mcp.json` file
+respectively.
 
 ### Claude
 Update the Claude desktop config file (claude_desktop_config.json).

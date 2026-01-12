@@ -10,7 +10,7 @@ from shared.constants import *
 from shared.helpers import *
 
 
-mcp = FastMCP("istari-mcp-server")
+mcp = FastMCP("istari-excel-server")
 
 @mcp.tool()
 def get_named_cells(model_id: str) -> str:
