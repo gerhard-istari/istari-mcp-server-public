@@ -145,6 +145,7 @@ def get_model_info(model_id: str) -> dict[str, Any]:
            "display_name": mod_rev.display_name,
            "revision_id": str(mod_rev.id),
            "creation_date": str(mod_rev.created),
+           "created_by_id": str(mod_rev.created_by_id),
            "extension": mod_rev.extension,
            "size": mod_rev.size,
            "sources": str(mod_rev.sources)

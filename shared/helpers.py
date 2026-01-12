@@ -222,94 +222,94 @@ def get_artifact_data(art_rev: object) -> bytes:
   return art_bytes
 
 
-async def submit_query(query: str,
-                 item_objs: list[str],
-                 eval_item: Callable[[str, str], QueryStatus],
-                 max_wait_time: int) -> QueryStatus:
-  rand_wait = max_wait_time / random.randint(1, 50)
-  sleep(rand_wait)
-  results = []
-  for item_obj in item_objs:
-    result = await eval_item(query,
-                       item_obj)
-    results.append(result)
-
-  return (item_objs, results)
-
-
-async def search_artifact_data(query: list[str],
-                               art_iter: iter,
-                               eval_item: Callable[[str, str], QueryStatus] = evaluate_query,
-                               batch_group_count: int = 10,
-                               max_iter_delay: int = 2,
-                               add_items: bool = False) -> list[str]:
-  batch_group = []
-  args = []
-  query_results = []
-  iter_idx = 0
-  batch_idx = 1
-  is_last = False
-  print('Starting processing')
-  while True:
-    try:
-      art_item = art_iter.__next__()
-      batch_group.append(art_item)
-      iter_idx += 1
-    except StopIteration:
-      is_last = True
-
-    if not iter_idx % batch_group_count or is_last:
-      print(f"Searching batch: {batch_idx}")
-      batch_idx += 1
-      #args.append((query, batch_group, eval_item, max_iter_delay))
-      query_result = await submit_query(query, batch_group, eval_item, max_iter_delay)
-      query_results.append(query_result)
-
-      if is_last: break
-      batch_group = []
-
-  #print('Starting multiprocessing')
-  #with multiprocessing.Pool(processes=12) as pool:
-  #  query_results = pool.starmap(submit_query, args)
-  print('Finished')
-
-  matches = []
-  prev_art_item = None
-  prev_match = False
-  added_prev_item = False
-  for iter_items, batch_results in query_results:
-    for iter_item, query_result in zip(iter_items, batch_results):
-      if query_result == QueryStatus.MATCH:
-        print('Found match')
-        if add_items and prev_art_item and not added_prev_item: 
-          matches.append(prev_art_item)
-
-        matches.append(iter_item)
-        prev_art_item = iter_item
-        added_prev_item = True
-        prev_match = True
-      elif prev_match:
-        matches.append(iter_item)
-        prev_match = False
-      else:
-        added_prev_item = False
-        prev_match = False
-
-      prev_art_item = iter_item
-
-  return matches
-
-
-def get_input(msg: str,
-              allowed_resps: list[str] = None) -> str:
-  while True:
-    ans = input(msg).lower()
-    if allowed_resps is None or ans in allowed_resps:
-      break
-    else:
-      print('Invalid response')
-
-  return ans
+#async def submit_query(query: str,
+#                 item_objs: list[str],
+#                 eval_item: Callable[[str, str], QueryStatus],
+#                 max_wait_time: int) -> QueryStatus:
+#  rand_wait = max_wait_time / random.randint(1, 50)
+#  sleep(rand_wait)
+#  results = []
+#  for item_obj in item_objs:
+#    result = await eval_item(query,
+#                       item_obj)
+#    results.append(result)
+#
+#  return (item_objs, results)
+#
+#
+#async def search_artifact_data(query: list[str],
+#                               art_iter: iter,
+#                               eval_item: Callable[[str, str], QueryStatus] = evaluate_query,
+#                               batch_group_count: int = 10,
+#                               max_iter_delay: int = 2,
+#                               add_items: bool = False) -> list[str]:
+#  batch_group = []
+#  args = []
+#  query_results = []
+#  iter_idx = 0
+#  batch_idx = 1
+#  is_last = False
+#  print('Starting processing')
+#  while True:
+#    try:
+#      art_item = art_iter.__next__()
+#      batch_group.append(art_item)
+#      iter_idx += 1
+#    except StopIteration:
+#      is_last = True
+#
+#    if not iter_idx % batch_group_count or is_last:
+#      print(f"Searching batch: {batch_idx}")
+#      batch_idx += 1
+#      #args.append((query, batch_group, eval_item, max_iter_delay))
+#      query_result = await submit_query(query, batch_group, eval_item, max_iter_delay)
+#      query_results.append(query_result)
+#
+#      if is_last: break
+#      batch_group = []
+#
+#  #print('Starting multiprocessing')
+#  #with multiprocessing.Pool(processes=12) as pool:
+#  #  query_results = pool.starmap(submit_query, args)
+#  print('Finished')
+#
+#  matches = []
+#  prev_art_item = None
+#  prev_match = False
+#  added_prev_item = False
+#  for iter_items, batch_results in query_results:
+#    for iter_item, query_result in zip(iter_items, batch_results):
+#      if query_result == QueryStatus.MATCH:
+#        print('Found match')
+#        if add_items and prev_art_item and not added_prev_item: 
+#          matches.append(prev_art_item)
+#
+#        matches.append(iter_item)
+#        prev_art_item = iter_item
+#        added_prev_item = True
+#        prev_match = True
+#      elif prev_match:
+#        matches.append(iter_item)
+#        prev_match = False
+#      else:
+#        added_prev_item = False
+#        prev_match = False
+#
+#      prev_art_item = iter_item
+#
+#  return matches
+#
+#
+#def get_input(msg: str,
+#              allowed_resps: list[str] = None) -> str:
+#  while True:
+#    ans = input(msg).lower()
+#    if allowed_resps is None or ans in allowed_resps:
+#      break
+#    else:
+#      print('Invalid response')
+#
+#  return ans
 
 
 def format_str(text: str,
