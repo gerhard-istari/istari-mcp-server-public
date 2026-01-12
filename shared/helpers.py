@@ -132,10 +132,11 @@ def download_artifact_orig(model_id: str,
 
 
 def download_artifact_data(model_id: str,
-                           artifact_name: str) -> bytes:
+                           artifact_name: str,
+                           art_rev_id: str = None) -> bytes:
   client = get_client()
   mod = client.get_model(model_id)
-  mod_rev_id = mod.file.revisions[-1].id
+  des_rev_id = mod.file.revision.id if art_rev_id is None else art_rev_id
 
   pg_idx = 1
   while True:
@@ -149,10 +150,12 @@ def download_artifact_data(model_id: str,
     # version of the model
     for art in arts:
       if art.name == artifact_name:
-        for art_rev in art.revisions:
-          for art_rev_src in art_rev.sources:
+        if art_rev_id is None:
+          return art.file.revision.read_bytes()
+        else:
+          for art_rev in art.file.revisions:
             try:
-              if art_rev_src.revision_id == mod_rev_id:
+              if art_rev.id == art_rev_id:
                 return art_rev.read_bytes()
             except Exception as excp:
               print(f"Exception: {excp}")
@@ -178,16 +181,45 @@ def download_artifact(model_id: str,
     fout.write(art_bytes)
 
 
-def get_input(msg: str,
-              allowed_resps: list[str] = None) -> str:
-  while True:
-    ans = input(msg).lower()
-    if allowed_resps is None or ans in allowed_resps:
-      break
-    else:
-      print('Invalid response')
+def download_model_data(model_id: str) -> bytes:
+  client = get_client()
+  mod = client.get_model(model_id)
+  mod_rev = mod.file.revision
+  return mod_rev.read_bytes()
 
-  return ans
+
+def download_model(model_id: str,
+                   dest_file: str = None) -> None:
+  mod_bytes = download_model_data(model_id)
+  if dest_file is None:
+    mod = client.get_model(model_id)
+    dest_file = mod.display_name
+    if dest_file is None:
+      dest_file = mod.name
+
+  with open(dest_file, 'wb') as fout:
+    fout.write(mod_bytes)
+
+
+def get_artifact_data(art_rev: object) -> bytes:
+  """
+  Searches the model cache for the specified artifact revision. If there is a 
+  cache hit, returns the cached data. Otherwise, the artifact is downloaded 
+  from the Istari platform and cached.
+  """
+  model_cache_dir = tempfile.gettempdir()
+  art_file = os.path.join(model_cache_dir,
+                          art_rev.id)
+  art_bytes = None
+  if False: #os.path.exists(art_file):
+    with open(art_file, 'rb') as fin:
+      art_bytes = fin.read()
+  else:
+    art_bytes = art_rev.read_bytes()
+    with open(art_file, 'wb') as fout:
+      fout.write(art_bytes)
+    
+  return art_bytes
 
 
 def format_str(text: str,

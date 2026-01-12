@@ -5,11 +5,11 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11,<3.13"
-mcp = "=1.10.0"
+mcp = "=1.23.1"
 dotenv = "=0.9.9"
 pillow = "*"
 requests = "2.32.4"
-istari_digital_client = "=7.19.1"
+istari_digital_client = "=7.19.3"
 poethepoet = "0.37.0"
 pyinstaller = "6.16.0"
 
@@ -19,8 +19,9 @@ build_3dx = "pyinstaller --clean --onefile --name=istari_3dexperience.exe istari
 build_cameo = "pyinstaller --clean --onefile --name=istari_cameo.exe istari-cameo.py"
 build_enovia = "pyinstaller --clean --onefile --name=istari_enovia.exe istari-enovia.py"
 build_excel = "pyinstaller --clean --onefile --name=istari_excel.exe istari-excel.py"
+build_gitlab = "pyinstaller --clean --onefile --name=istari_gitlab.exe istari-gitlab.py"
 build_nastran = "pyinstaller --clean --onefile --name=istari_nastran.exe istari-nastran.py"
 build_pdf = "pyinstaller --clean --onefile --name=istari_pdf.exe istari-pdf.py"
 build_simulink = "pyinstaller --clean --onefile --name=istari_simulink.exe istari-simulink.py"
-build = { sequence = ["build_main", "build_3dx", "build_cameo", "build_enovia", "build_excel", "build_nastran", "build_pdf", "build_simulink"] }
+build = { sequence = ["build_main", "build_3dx", "build_cameo", "build_enovia", "build_excel", "build_gitlab", "build_nastran", "build_pdf", "build_simulink"] }
 package = "python scripts/package_build.py"

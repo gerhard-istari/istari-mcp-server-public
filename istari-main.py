@@ -1,11 +1,15 @@
+"""
+This MCP server provides tools for querying and manipulating models, artifacts
+and data on the Istari platform.
+"""
 import json
 import os
-import random
 import tempfile
 from io import BytesIO
 from mcp.server.fastmcp import FastMCP
 from PIL import Image
 from typing import Any
+
 from istari_digital_client.models import NewSnapshot, NewSystem, NewSystemConfiguration, NewTrackedFile, AccessRelationship, AccessRelation, AccessSubjectType, AccessResourceType
 from istari_digital_client.models.tracked_file_specifier_type import TrackedFileSpecifierType
 
@@ -13,7 +17,8 @@ from shared.constants import *
 from shared.helpers import *
 
 
-mcp = FastMCP("istari-mcp-server")
+mcp = FastMCP("istari-server")
+
 
 @mcp.tool()
 def list_registry_token() -> str:
@@ -22,7 +27,7 @@ def list_registry_token() -> str:
 
 
 @mcp.tool()
-def get_models() -> dict[str, dict[str, Any]]:
+def get_models() -> dict[str, dict[str, object]]:
   """Gets the UUIDs and associated metadata of all available models.
 
      Returns:
@@ -41,6 +46,7 @@ def get_models() -> dict[str, dict[str, Any]]:
                       "display_name": mod_rev.display_name,
                       "revision_id": str(mod_rev.id),
                       "creation_date": str(mod_rev.created),
+                      "created_by_id": str(mod_itm.created_by_id),
                       "extension": mod_rev.extension,
                       "size": mod_rev.size,
                       "sources": str(mod_rev.sources)}
@@ -125,6 +131,28 @@ def share_resource_with_user(resource_id: str,
 
 
 @mcp.tool()
+def get_model_info(model_id: str) -> dict[str, Any]:
+  """Gets informational metadata about the model with the specified UUID.
+
+     Returns:
+       A dictionary containing the model metadata.
+  """
+  client = get_client()
+  mod = client.get_model(model_id)
+  mod_rev = mod.revision
+  return {
+           "name": mod_rev.name,
+           "display_name": mod_rev.display_name,
+           "revision_id": str(mod_rev.id),
+           "creation_date": str(mod_rev.created),
+           "created_by_id": str(mod_rev.created_by_id),
+           "extension": mod_rev.extension,
+           "size": mod_rev.size,
+           "sources": str(mod_rev.sources)
+         }
+
+
+@mcp.tool()
 def get_model_artifacts(model_id: str) -> dict[str, dict[str, Any]]:
   """Gets the UUIDs and associated metadata of all artifacts produced by a specified model.
 
@@ -153,6 +181,7 @@ def get_model_artifacts(model_id: str) -> dict[str, dict[str, Any]]:
         if mod_rev.id == art_rev_src.revision_id:
           arts[art_itm.id] = {"name": art_itm.name,
                               "display_name": art_rev.display_name,
+                              "version_name": art_rev.version_name,
                               "revision_id": str(art_rev.id),
                               "creation_date": str(art_rev.created),
                               "extension": art_rev.extension,
@@ -165,54 +194,104 @@ def get_model_artifacts(model_id: str) -> dict[str, dict[str, Any]]:
 
 
 @mcp.tool()
+def get_model_artifact_revisions(model_id: str,
+                                 artifact_name: str) -> dict[str, dict[str, Any]]:
+  """Gets the UUIDs and associated metadata of all revisions of a specified model and artifact.
+     
+     Args:
+       model_id (str): A string containing the UUID of the model.
+       artifact_name (str): The human readable name of the artifact to retrieve.
+
+     Returns:
+       A dictionary with artifact revision UUIDs as keys and various artifact
+       revision metadata in the values.
+  """
+  arts = get_model_artifacts(model_id)
+  for id, art_data in arts.items():
+    if art_data['name'] == artifact_name:
+      art_id = id
+
+  if art_id is None:
+    raise FileNotFoundError(f"Artifact not found: {artifact_name}")
+
+  art_revs = {}
+  client = get_client()
+  art = client.get_artifact(art_id)
+  for art_rev in art.file.revisions:
+    art_revs[art_rev.id] = {"name": art_rev.name,
+                            "display_name": art_rev.display_name,
+                            "version_name": art_rev.version_name,
+                            "creation_date": str(art_rev.created),
+                            "extension": art_rev.extension,
+                            "size": art_rev.size,
+                            "sources": str(art_rev.sources)}
+  return art_revs
+  
+  
+@mcp.tool()
 def get_model_artifact(model_id: str,
-                       artifact_name: str) -> bytes:
+                       artifact_name: str,
+                       artifact_rev_id: str = None) -> str:
   """Retrieves the contents of the specified artifact.
      
      Args:
        model_id (str): The model ID that contains the desired artifact.
        artifact_name (str): The name of the artifact to retrieve.
+       artifact_rev_id (str): The ID of the artifact revision to retrieve. If
+                              not specified, the newest artifact revision is returned.
 
      Returns:
        The contents of the artifact as a string.
   """
   art_data = download_artifact_data(model_id,
-                                    artifact_name)
+                                    artifact_name,
+                                    artifact_rev_id)
   return art_data.decode('windows-1250')
 
 
 @mcp.tool()
 def download_model_artifact(model_id: str,
                             artifact_name: str,
-                            file_name: str) -> str:
-  """Downloads the specified artifact to the named file.
+                            artifact_dir: str,
+                            artifact_rev_id: str = None) -> str:
+  """Downloads the specified artifact to the named file. Do not use this tool
+     for model data. Use the `download_model` tool instead.
 
      Args:
        model_id (str): The model ID that contains the desired artifact.
        artifact_name (str): The name of the artifact to retrieve.
-       file_name (str): The path to save the artifact contents to.
+       artifact_dir (str): The directory to save the artifact to.
+       artifact_rev_id (str): The ID of the artifact revision to retrieve. If
+                              not specified, the newest artifact revision is returned.
   """
   art_bytes = download_artifact_data(model_id,
-                                     artifact_name)
+                                     artifact_name,
+                                     artifact_rev_id)
+  file_name = os.path.join(artifact_dir,
+                           artifact_name)
   with open(file_name, 'wb') as fout:
     fout.write(art_bytes)
 
-  return 'Artifact downloaded successfully'
+  return f"Artifact downloaded successfully to {file_name}"
 
 
 @mcp.tool()
 def view_artifact(model_id: str,
-                  artifact_name: str) -> str:
+                  artifact_name: str,
+                  artifact_rev_id: str = None) -> str:
   """Displays an image artifact for the specified model.
 
      Args:
        model_id (str): A string containing the UUID of the model containing the artifact to view.
        artifact_name (str): The name of the artifact to view.
+       artifact_rev_id (str): The ID of the artifact revision to retrieve. If
+                              not specified, the newest artifact revision is returned.
   """
 
   try:
     art_bytes = download_artifact_data(model_id,
-                                       artifact_name)
+                                       artifact_name,
+                                       artifact_rev_id)
     byte_data = BytesIO(art_bytes)
     img = Image.open(byte_data)
     img.show()
@@ -240,35 +319,41 @@ def get_system_model_ids(system_id: str,
 
   model_ids = []
   pg_idx = 1
-  snpsht_pg = sys.list_file_revisions_by_snapshot(page=pg_idx)
+  snpsht_pg = sys.list_file_revisions_by_snapshot(snapshot=snapshot_id,
+                                                  page=pg_idx)
   while len(snpsht_pg.items) > 0:
     for snpsht_itm in snpsht_pg.items:
       file = client.get_file(snpsht_itm.file_id)
       if file.resource_type == 'Model':
-        model_ids.append(file.resource_id)
+        model_ids.append(file.id)
 
     pg_idx += 1
-    snpsht_pg = sys.list_file_revisions_by_snapshot(page=pg_idx)
+    snpsht_pg = sys.list_file_revisions_by_snapshot(snapshot=snapshot_id,
+                                                    page=pg_idx)
 
   return model_ids
 
 
 @mcp.tool()
-def get_system_snapshots(system_id: str) -> dict[str, dict[str, Any]]:
+def get_system_snapshots(system_id: str,
+                         config_id: str = None) -> dict[str, dict[str, Any]]:
   """Gets the snapshots associated with a specified system.
 
      Args:
        system_id (str): A string specifying the UUID of the system.
+       config_id (str): A string specifying the UUID of a system configuration.
+                        If specified, only snapshots of this configuration will
+                        be returned.
 
      Returns:
        A dictionary with the snapshot UUIDs as keys and the values containing snapshot metadata.
   """
   client = get_client()
-  sys = client.get_system(system_id)
 
   sys_snpshts = {}
   pg_idx = 1
   snpsht_pg = client.list_snapshots(system_id,
+                                    configuration_id=config_id,
                                     page=pg_idx)
   while len(snpsht_pg.items) > 0:
     for snpsht_sys in snpsht_pg.items:
@@ -279,10 +364,13 @@ def get_system_snapshots(system_id: str) -> dict[str, dict[str, Any]]:
                                                  snpsht_mod_pg_idx)
       while len(snpsht_mod_pg.items) > 0:
         for snpsht_itm in snpsht_mod_pg.items:
-          snpsht_itm_rev_id = snpsht_itm.file_revision_id
-          snpsht_file = client.get_file_by_revision_id(snpsht_itm_rev_id)
-          if snpsht_file.resource_type == "Model":
-            snpsht_mods[snpsht_file.resource_id] = snpsht_itm_rev_id
+          try:
+            snpsht_itm_rev_id = snpsht_itm.file_revision_id
+            snpsht_file = client.get_file_by_revision_id(snpsht_itm_rev_id)
+            if snpsht_file.resource_type == "Model":
+              snpsht_mods[snpsht_file.resource_id] = snpsht_itm_rev_id
+          except Exception as excp:
+            print(f"Exception: {excp}")
 
         snpsht_mod_pg_idx += 1
         snpsht_mod_pg = client.list_snapshot_items(snpsht_sys.id,
@@ -295,6 +383,7 @@ def get_system_snapshots(system_id: str) -> dict[str, dict[str, Any]]:
 
     pg_idx += 1
     snpsht_pg = client.list_snapshots(system_id,
+                                      configuration_id=config_id,
                                       page=pg_idx)
 
   return sys_snpshts
@@ -357,18 +446,23 @@ def create_system(name: str,
 
 
 @mcp.tool()
-def create_system_snapshot(system_id: str) -> str:
+def create_system_snapshot(system_id: str,
+                           config_id: str = None) -> str:
   """Creates a snapshot for the specified system.
 
      Args:
        system_id (str): The UUID of the system to add a snapshot to.
+       config_id (str): The UUID of the system configuration to create the
+                        snapshot from. If none is specified, the latest
+                        configuration is used.
   """
   client = get_client()
   sys = client.get_system(system_id)
-  cfg_id = sys.configurations[-1].id
+  if config_id is None:
+    config_id = sys.configurations[-1].id
 
   new_snpsht = NewSnapshot()
-  client.create_snapshot(cfg_id,
+  client.create_snapshot(config_id,
                          new_snpsht)
   return 'System snapshot created successfully'
 
@@ -403,6 +497,28 @@ def create_system_configuration(system_id: str,
 
 
 @mcp.tool()
+def get_model_revisions(model_id: str) -> dict[str, dict[str, Any]]:
+  """Gets all revisions for the model with the specified ID.
+
+     Args:
+       model_id (str): A string containing the ID of the model to update.
+  """
+  client = get_client()
+  mod = client.get_model(model_id)
+
+  revs = {}
+  for mod_rev in mod.file.revisions:
+    revs[mod_rev.id] = {"name": mod_rev.name,
+                        "display_name": mod_rev.display_name,
+                        "version_name": mod_rev.version_name,
+                        "creation_date": str(mod_rev.created),
+                        "extension": mod_rev.extension,
+                        "size": mod_rev.size,
+                        "sources": str(mod_rev.sources)}
+  return revs
+
+
+@mcp.tool()
 def update_model(model_id: str,
                  model_file: str) -> str:
   """Updates a model with a new version from the specified file.
@@ -418,6 +534,58 @@ def update_model(model_id: str,
                       display_name=disp_name)
 
   return 'Model updated successfully'
+
+
+@mcp.tool()
+def archive_models(model_ids: list[str]) -> str:
+  """Archives models with the specified UUIDs.
+    
+     Args:
+       model_ids (str): A list of strings containing the UUIDs of the models to archive.
+  """
+  excps = []
+  client = get_client()
+  for mod_id in model_ids:
+    try:
+      client.archive_model(mod_id)
+    except Exception as excp:
+      excps.append(excp)
+
+  if len(excps) > 0:
+    msg = f"Some models were not archived successfully:\n{excps}"
+  else:
+    msg = 'Models archived successfully'
+  return msg
+
+
+@mcp.tool()
+def download_model(model_ids: list[str],
+                   dest_dir: str) -> str:
+  """Downloads models to the specified location.
+    
+     Args:
+       model_ids (str): A list of strings containing the UUIDs of the models to download.
+       dest_dir (str): The directory to which the model should be saved.
+  """
+  excps = []
+  client = get_client()
+  for model_id in model_ids:
+    try:
+      mod_bytes = download_model_data(model_id)
+      mod = client.get_model(model_id)
+      dest_file = os.path.join(dest_dir,
+                               mod.name)
+
+      with open(dest_file, 'wb') as fout:
+        fout.write(mod_bytes)
+    except Exception as excp:
+      excps.append(excp)
+
+  if len(excps) > 0:
+    msg = f"Some models were not downloaded successfully:\n{excps}"
+  else:
+    msg = f"Models downloaded successfully to {dest_dir}"
+  return msg
 
 
 @mcp.tool()
@@ -471,3 +639,5 @@ def share_object(obj_id: str,
 if __name__ == "__main__":
   print("MCP Server is running")
   mcp.run(transport='stdio')
+  #print(get_system_snapshots("250a4d4a-198a-4f3e-ba8a-76bb05b7db8f",
+  #                          "c43cd03c-9b76-4f50-9791-512c1e987456"))
