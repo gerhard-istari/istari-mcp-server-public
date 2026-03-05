@@ -14,7 +14,6 @@ res_files = [
   'env_template',
   'enovia_env_template',
   'gitlab_env_template',
-  'sample_workflow.json',
   mcp_json_file,
   vers_file,
 ]          

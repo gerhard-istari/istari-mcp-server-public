@@ -1,5 +1,5 @@
-ENOVIA_URL=<url_to_3dexperience>
-SERVICE_NAME=<batch_service_name>
-SERVICE_SECRET=<batch_service_secret>
-ENOVIA_USER=<enovia_user_name>
+ENOVIA_URL="url_to_3dexperience"
+SERVICE_NAME="batch_service_name"
+SERVICE_SECRET="batch_service_secret"
+ENOVIA_USER="enovia_user_name"
 SSL_VERIFY="True"

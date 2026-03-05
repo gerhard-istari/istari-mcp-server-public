@@ -293,12 +293,6 @@ def get_pipeline_status(pl_info: dict[str, Any]) -> Json:
   return response.json()
 
 
-#@mcp.tool()
-#def cancel_pipelines(pl_info: dict[str, Any]) -> Json:
-#  """Cancels a list of executing pipelines given the kkk"""
-#  pass
-
-
 @mcp.tool()
 def get_workflow_info(workflow_dir: str) -> Json:
   """Gets information about an instance of a pipeline execution or workflow
@@ -324,30 +318,3 @@ def get_workflow_info(workflow_dir: str) -> Json:
 if __name__ == "__main__":
   print("MCP Server is running")
   mcp.run(transport='stdio')
-  #print(json.dumps(execute_pipeline("C:/cygwin64/home/gstoeckel/Projects/Separator/config_ids.json"), indent=2))
-  #print(json.dumps(execute_pipeline(
-  #  "C:/Workflows/System/system_config.json",
-  #  [
-  #    {
-  #      "flow_rate_gs": {
-  #        "value": "12.2"
-  #      }
-  #    }
-  #  ],
-  #  True
-  #), indent=2))
-  #print(json.dumps(execute_pipeline(
-  #  "C:/Workflows/Separator/separator_config.json",
-  #  [
-  #    #{"flow_rate_gs": {"value": "12.2"}, "C2_diameter_m": {"value": "0.05"}} #,
-  #    #{"flow_rate_gs": {"value": "12.3"}, "C2_diameter_m": {"value": "0.075"}},
-  #    #{"flow_rate_gs": {"value": "12.3"}, "C2_diameter_m": {"value": "0.1"}},
-  #    #{"flow_rate_gs": {"value": "12.4"}, "C2_diameter_m": {"value": "0.05"}},
-  #    {"flow_rate_gs": {"value": "12.4"}, "C2_diameter_m": {"value": "0.075"}},
-  #    {"flow_rate_gs": {"value": "12.4"}, "C2_diameter_m": {"value": "0.1"}},
-  #    {"flow_rate_gs": {"value": "12.5"}, "C2_diameter_m": {"value": "0.05"}},
-  #    {"flow_rate_gs": {"value": "12.5"}, "C2_diameter_m": {"value": "0.075"}},
-  #    {"flow_rate_gs": {"value": "12.5"}, "C2_diameter_m": {"value": "0.1"}}
-  #  ],
-  #  True
-  #), indent=2))
